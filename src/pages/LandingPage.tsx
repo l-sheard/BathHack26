@@ -3,11 +3,34 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
+import { sendWhatsAppReminder } from "../services/whatsappReminderService";
 
 export function LandingPage() {
   const navigate = useNavigate();
   const [joinTripId, setJoinTripId] = useState("");
   const [joinCode, setJoinCode] = useState("");
+
+  // --- DEV TESTING: comment out this block to hide the WhatsApp test panel ---
+  const [testPhone, setTestPhone] = useState("");
+  const [testStatus, setTestStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [testError, setTestError] = useState("");
+
+  async function sendTestMessage() {
+    setTestStatus("sending");
+    try {
+      await sendWhatsAppReminder({
+        toPhone: testPhone.trim(),
+        participantName: "Tester",
+        tripName: "Test Trip",
+        preferencesUrl: window.location.href,
+      });
+      setTestStatus("sent");
+    } catch (err) {
+      setTestError(String(err));
+      setTestStatus("error");
+    }
+  }
+  // ---------------------------------------------------------------------------
 
   return (
     <div className="relative isolate grid gap-8 md:grid-cols-[1.2fr_1fr] md:items-center">
@@ -62,6 +85,31 @@ export function LandingPage() {
           </Button>
         </div>
       </Card>
+      {/* --- DEV TESTING: comment out this block to hide the WhatsApp test panel --- */}
+      <div className="col-span-full mt-2 rounded-2xl border border-dashed border-violet-400/25 bg-white/[0.03] p-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Send a test reminder
+        </p>
+        <div className="flex flex-wrap items-end gap-2">
+          <Input
+            className="w-52"
+            placeholder="+447911123456"
+            value={testPhone}
+            onChange={(e) => { setTestPhone(e.target.value); setTestStatus("idle"); }}
+          />
+          <Button
+            variant="ghost"
+            disabled={!testPhone.trim() || testStatus === "sending" || testStatus === "sent"}
+            onClick={sendTestMessage}
+          >
+            {testStatus === "sending" ? "Sending…" : testStatus === "sent" ? "Sent ✓" : "Send test message"}
+          </Button>
+        </div>
+        {testStatus === "error" && (
+          <p className="mt-2 text-xs text-red-400">{testError}</p>
+        )}
+      </div>
+      {/* --------------------------------------------------------------------------- */}
     </div>
   );
 }
