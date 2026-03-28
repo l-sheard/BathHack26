@@ -1,6 +1,7 @@
 import { ACCOMMODATIONS, ACTIVITIES, DESTINATIONS, RESTAURANTS } from "../../data/mockCatalog";
 import { supabase } from "../../lib/supabase";
 import type { AggregatedConstraints, GeneratedOption, TripPreferenceTag } from "../../types/models";
+import { generateTripOptionsWithLLM, isAiPlannerEnabled } from "./llmPlanner";
 
 type ParticipantRow = {
   id: string;
@@ -455,7 +456,18 @@ function buildOption(
 
 export async function generateTripOptions(tripId: string) {
   const constraints = await aggregateConstraints(tripId);
-  const options = generateOptionSetFromConstraints(constraints);
+  let options: GeneratedOption[];
+
+  if (isAiPlannerEnabled()) {
+    try {
+      options = await generateTripOptionsWithLLM(constraints);
+    } catch (error) {
+      console.warn("AI planner failed; falling back to deterministic planner:", error);
+      options = generateOptionSetFromConstraints(constraints);
+    }
+  } else {
+    options = generateOptionSetFromConstraints(constraints);
+  }
 
   const { data: existingOptions } = await supabase.from("trip_options").select("id").eq("trip_id", tripId);
   const existingIds = (existingOptions ?? []).map((row: { id: string }) => row.id);

@@ -41,6 +41,11 @@ Hackathon-ready full-stack MVP built with React + TypeScript + Tailwind + Supaba
    Set:
    - VITE_SUPABASE_URL
    - VITE_SUPABASE_ANON_KEY
+   - VITE_OPENAI_API_KEY (optional, enables AI planner via LangChain)
+   - VITE_OPENAI_MODEL (optional, defaults to gpt-4o-mini)
+
+   Optional AI planner packages:
+   - npm install langchain @langchain/openai
 
 3. In Supabase SQL editor, run:
 
@@ -87,11 +92,13 @@ Inside src/services/generation/agents.ts:
 
 ## Notes for hackathon judges
 
-- This MVP uses seeded/mock travel inventory (no live external APIs), as requested.
+- This MVP uses seeded/mock travel inventory and can now optionally use a LangChain LLM planner for option generation.
 - Data model and generation services are structured for easy API replacement later.
+- If AI env vars are not set (or AI call fails), the app falls back to deterministic generation logic.
 
 ## Future integration TODOs
 
+- Move LangChain planner invocation from frontend into a server/edge function so API keys are never exposed to clients
 - Replace mock transport planning with live flight/train providers
 - Replace mock accommodation with hotel APIs
 - Replace rule-based visa checks with visa API/provider
