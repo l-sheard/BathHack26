@@ -4,6 +4,9 @@ import { CreateTripPage } from "./pages/CreateTripPage";
 import { JoinTripPage } from "./pages/JoinTripPage";
 import { PreferencesPage } from "./pages/PreferencesPage";
 import { TripDashboardPage } from "./pages/TripDashboardPage";
+import { GenerationPage } from "./pages/GenerationPage";
+import { TripOptionsPage } from "./pages/TripOptionsPage";
+import { TripOptionDetailPage } from "./pages/TripOptionDetailPage";
 
 function App() {
   return (
@@ -28,6 +31,9 @@ function App() {
           <Route path="/trip/:tripId/join" element={<JoinTripPage />} />
           <Route path="/trip/:tripId/preferences/:participantId" element={<PreferencesPage />} />
           <Route path="/trip/:tripId/dashboard" element={<TripDashboardPage />} />
+          <Route path="/trip/:tripId/generate" element={<GenerationPage />} />
+          <Route path="/trip/:tripId/options" element={<TripOptionsPage />} />
+          <Route path="/trip/:tripId/options/:optionId" element={<TripOptionDetailPage />} />
         </Routes>
       </main>
     </div>

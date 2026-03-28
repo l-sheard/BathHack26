@@ -11,7 +11,6 @@ describe("preferences schema", () => {
       max_travel_time_hours: 7,
       transport_preference: "either",
       total_budget: 800,
-      budget_flexibility: 120,
       trip_preferences: ["city", "culture"],
       accessibility: {
         ground_floor: false,

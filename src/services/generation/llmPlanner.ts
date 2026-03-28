@@ -103,6 +103,7 @@ function buildPlannerPrompt(constraints: AggregatedConstraints) {
   return [
     "You are a travel planning AI for a group-trip hackathon app.",
     "Return exactly 3 options using themes in this order: cheapest, best_match, most_sustainable.",
+    "Each option must use a different destination city. No duplicate destinations across the 3 options.",
     "Respect group constraints. Keep options realistic and internally consistent.",
     "Use only destinations and inventory from the provided context.",
     "Each option must include transport, accommodation, restaurants, visa summaries, itinerary, and budget breakdown.",

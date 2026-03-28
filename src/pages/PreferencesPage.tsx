@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useParams } from "react-router-dom";
@@ -20,6 +20,263 @@ const tagOptions = [
   { label: "Culture", value: "culture" }
 ];
 
+const UK_AIRPORT_OPTIONS = [
+  "London Heathrow (LHR)",
+  "London Gatwick (LGW)",
+  "London Stansted (STN)",
+  "London Luton (LTN)",
+  "London City (LCY)",
+  "Manchester (MAN)",
+  "Birmingham (BHX)",
+  "Bristol (BRS)",
+  "Leeds Bradford (LBA)",
+  "Liverpool John Lennon (LPL)",
+  "Newcastle (NCL)",
+  "East Midlands (EMA)",
+  "Southampton (SOU)",
+  "Belfast International (BFS)",
+  "George Best Belfast City (BHD)",
+  "Edinburgh (EDI)",
+  "Glasgow (GLA)",
+  "Aberdeen (ABZ)",
+  "Inverness (INV)",
+  "Cardiff (CWL)",
+  "Exeter (EXT)",
+  "Norwich (NWI)",
+  "Bournemouth (BOH)",
+  "Teesside International (MME)",
+  "Humberside (HUY)",
+  "London Southend (SEN)",
+  "Isle of Man (IOM)",
+  "Jersey (JER)",
+  "Guernsey (GCI)"
+] as const;
+
+const UK_TRAIN_STATION_OPTIONS = [
+  "London St Pancras International",
+  "London King's Cross",
+  "London Euston",
+  "London Paddington",
+  "London Liverpool Street",
+  "London Victoria",
+  "Birmingham New Street",
+  "Manchester Piccadilly",
+  "Manchester Victoria",
+  "Bristol Temple Meads",
+  "Leeds",
+  "Liverpool Lime Street",
+  "Newcastle",
+  "Edinburgh Waverley",
+  "Glasgow Central",
+  "Cardiff Central",
+  "Sheffield",
+  "Nottingham",
+  "Leicester",
+  "Reading",
+  "York",
+  "Cambridge",
+  "Oxford",
+  "Southampton Central",
+  "Exeter St Davids"
+] as const;
+
+const COUNTRY_OPTIONS = [
+  "Afghanistan",
+  "Albania",
+  "Algeria",
+  "Andorra",
+  "Angola",
+  "Argentina",
+  "Armenia",
+  "Australia",
+  "Austria",
+  "Azerbaijan",
+  "Bahamas",
+  "Bahrain",
+  "Bangladesh",
+  "Barbados",
+  "Belarus",
+  "Belgium",
+  "Belize",
+  "Benin",
+  "Bhutan",
+  "Bolivia",
+  "Bosnia and Herzegovina",
+  "Botswana",
+  "Brazil",
+  "Brunei",
+  "Bulgaria",
+  "Burkina Faso",
+  "Burundi",
+  "Cambodia",
+  "Cameroon",
+  "Canada",
+  "Cape Verde",
+  "Central African Republic",
+  "Chad",
+  "Chile",
+  "China",
+  "Colombia",
+  "Comoros",
+  "Congo",
+  "Costa Rica",
+  "Croatia",
+  "Cuba",
+  "Cyprus",
+  "Czech Republic",
+  "Denmark",
+  "Djibouti",
+  "Dominica",
+  "Dominican Republic",
+  "Ecuador",
+  "Egypt",
+  "El Salvador",
+  "Equatorial Guinea",
+  "Eritrea",
+  "Estonia",
+  "Eswatini",
+  "Ethiopia",
+  "Fiji",
+  "Finland",
+  "France",
+  "Gabon",
+  "Gambia",
+  "Georgia",
+  "Germany",
+  "Ghana",
+  "Greece",
+  "Grenada",
+  "Guatemala",
+  "Guinea",
+  "Guinea-Bissau",
+  "Guyana",
+  "Haiti",
+  "Honduras",
+  "Hungary",
+  "Iceland",
+  "India",
+  "Indonesia",
+  "Iran",
+  "Iraq",
+  "Ireland",
+  "Israel",
+  "Italy",
+  "Jamaica",
+  "Japan",
+  "Jordan",
+  "Kazakhstan",
+  "Kenya",
+  "Kiribati",
+  "Kosovo",
+  "Kuwait",
+  "Kyrgyzstan",
+  "Laos",
+  "Latvia",
+  "Lebanon",
+  "Lesotho",
+  "Liberia",
+  "Libya",
+  "Liechtenstein",
+  "Lithuania",
+  "Luxembourg",
+  "Madagascar",
+  "Malawi",
+  "Malaysia",
+  "Maldives",
+  "Mali",
+  "Malta",
+  "Marshall Islands",
+  "Mauritania",
+  "Mauritius",
+  "Mexico",
+  "Micronesia",
+  "Moldova",
+  "Monaco",
+  "Mongolia",
+  "Montenegro",
+  "Morocco",
+  "Mozambique",
+  "Myanmar",
+  "Namibia",
+  "Nauru",
+  "Nepal",
+  "Netherlands",
+  "New Zealand",
+  "Nicaragua",
+  "Niger",
+  "Nigeria",
+  "North Korea",
+  "North Macedonia",
+  "Norway",
+  "Oman",
+  "Pakistan",
+  "Palau",
+  "Palestine",
+  "Panama",
+  "Papua New Guinea",
+  "Paraguay",
+  "Peru",
+  "Philippines",
+  "Poland",
+  "Portugal",
+  "Qatar",
+  "Romania",
+  "Russia",
+  "Rwanda",
+  "Saint Kitts and Nevis",
+  "Saint Lucia",
+  "Saint Vincent and the Grenadines",
+  "Samoa",
+  "San Marino",
+  "Sao Tome and Principe",
+  "Saudi Arabia",
+  "Senegal",
+  "Serbia",
+  "Seychelles",
+  "Sierra Leone",
+  "Singapore",
+  "Slovakia",
+  "Slovenia",
+  "Solomon Islands",
+  "Somalia",
+  "South Africa",
+  "South Korea",
+  "South Sudan",
+  "Spain",
+  "Sri Lanka",
+  "Sudan",
+  "Suriname",
+  "Sweden",
+  "Switzerland",
+  "Syria",
+  "Taiwan",
+  "Tajikistan",
+  "Tanzania",
+  "Thailand",
+  "Timor-Leste",
+  "Togo",
+  "Tonga",
+  "Trinidad and Tobago",
+  "Tunisia",
+  "Turkey",
+  "Turkmenistan",
+  "Tuvalu",
+  "Uganda",
+  "Ukraine",
+  "United Arab Emirates",
+  "United Kingdom",
+  "United States",
+  "Uruguay",
+  "Uzbekistan",
+  "Vanuatu",
+  "Vatican City",
+  "Venezuela",
+  "Vietnam",
+  "Yemen",
+  "Zambia",
+  "Zimbabwe"
+] as const;
+
 function boolItems(prefix: "accessibility" | "dietary" | "sustainability", entries: Array<{ key: string; label: string }>) {
   return entries.map((entry) => ({
     path: `${prefix}.${entry.key}` as const,
@@ -29,6 +286,7 @@ function boolItems(prefix: "accessibility" | "dietary" | "sustainability", entri
 
 export function PreferencesPage() {
   const { tripId = "", participantId = "" } = useParams();
+  const [alternativeInput, setAlternativeInput] = useState("");
   const saveMutation = useSavePreferences(tripId, participantId);
   const existing = useParticipantPreferences(participantId);
 
@@ -41,6 +299,28 @@ export function PreferencesPage() {
     control: form.control,
     name: "availability_windows"
   });
+
+  const selectedTransportPreference = form.watch("transport_preference");
+  const departureLookupOptions =
+    selectedTransportPreference === "train"
+      ? UK_TRAIN_STATION_OPTIONS
+      : selectedTransportPreference === "plane"
+        ? UK_AIRPORT_OPTIONS
+        : [...UK_AIRPORT_OPTIONS, ...UK_TRAIN_STATION_OPTIONS];
+
+  const departureLabel =
+    selectedTransportPreference === "train"
+      ? "Preferred departure train station"
+      : selectedTransportPreference === "plane"
+        ? "Preferred departure airport"
+        : "Preferred departure airport or train station";
+
+  const alternativesLabel =
+    selectedTransportPreference === "train"
+      ? "Acceptable alternative train stations"
+      : selectedTransportPreference === "plane"
+        ? "Acceptable alternative airports"
+        : "Acceptable alternative departures";
 
   useEffect(() => {
     if (!existing.data) return;
@@ -101,37 +381,98 @@ export function PreferencesPage() {
           <Section title="Travel details">
             <div className="grid gap-3 md:grid-cols-2">
               <label className="space-y-1">
-                <span className="text-sm font-semibold">Departure airport/station</span>
-                <Input {...form.register("departure_location")} />
-              </label>
-              <label className="space-y-1">
-                <span className="text-sm font-semibold">Max travel time (hours)</span>
-                <Input type="number" {...form.register("max_travel_time_hours")} />
-              </label>
-              <label className="space-y-1">
-                <span className="text-sm font-semibold">Acceptable alternatives (comma separated)</span>
-                <Input
-                  value={form.watch("alternative_locations").join(", ")}
-                  onChange={(event) =>
-                    form.setValue(
-                      "alternative_locations",
-                      event.target.value
-                        .split(",")
-                        .map((item) => item.trim())
-                        .filter(Boolean)
-                    )
-                  }
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="text-sm font-semibold">Transport preference</span>
+                <span className="text-sm font-semibold">Travel preference</span>
                 <select className="w-full rounded-xl border border-slate-300 p-2" {...form.register("transport_preference")}>
                   <option value="plane">Plane</option>
                   <option value="train">Train</option>
                   <option value="either">Either</option>
                 </select>
               </label>
+              <label className="space-y-1">
+                <span className="text-sm font-semibold">{departureLabel}</span>
+                <Input
+                  {...form.register("departure_location")}
+                  list="uk-departure-options"
+                  placeholder="Start typing to search departures"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-sm font-semibold">Max travel time (hours)</span>
+                <Input type="number" {...form.register("max_travel_time_hours")} />
+              </label>
+              <label className="space-y-1">
+                <span className="text-sm font-semibold">{alternativesLabel}</span>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Input
+                      value={alternativeInput}
+                      onChange={(event) => setAlternativeInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter") return;
+                        event.preventDefault();
+                        const next = alternativeInput.trim();
+                        if (!next) return;
+                        const current = form.getValues("alternative_locations");
+                        if (current.includes(next)) {
+                          setAlternativeInput("");
+                          return;
+                        }
+                        form.setValue("alternative_locations", [...current, next], { shouldValidate: true });
+                        setAlternativeInput("");
+                      }}
+                      list="uk-departure-options"
+                      placeholder="Type departure and press Enter"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        const next = alternativeInput.trim();
+                        if (!next) return;
+                        const current = form.getValues("alternative_locations");
+                        if (current.includes(next)) {
+                          setAlternativeInput("");
+                          return;
+                        }
+                        form.setValue("alternative_locations", [...current, next], { shouldValidate: true });
+                        setAlternativeInput("");
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {form.watch("alternative_locations").map((departure) => (
+                      <span
+                        key={departure}
+                        className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs"
+                      >
+                        {departure}
+                        <button
+                          type="button"
+                          className="text-slate-500 hover:text-slate-700"
+                          onClick={() =>
+                            form.setValue(
+                              "alternative_locations",
+                              form.getValues("alternative_locations").filter((item) => item !== departure),
+                              { shouldValidate: true }
+                            )
+                          }
+                        >
+                          x
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </label>
             </div>
+            <datalist id="uk-departure-options">
+              {departureLookupOptions.map((option) => (
+                <option key={option} value={option} />
+              ))}
+            </datalist>
           </Section>
 
           <Section title="Budget">
@@ -139,10 +480,6 @@ export function PreferencesPage() {
               <label className="space-y-1">
                 <span className="text-sm font-semibold">Total trip budget (GBP)</span>
                 <Input type="number" {...form.register("total_budget")} />
-              </label>
-              <label className="space-y-1">
-                <span className="text-sm font-semibold">Budget flexibility (GBP)</span>
-                <Input type="number" {...form.register("budget_flexibility")} />
               </label>
             </div>
           </Section>
@@ -220,17 +557,30 @@ export function PreferencesPage() {
             <div className="grid gap-3 md:grid-cols-2">
               <label className="space-y-1">
                 <span className="text-sm font-semibold">Passport nationality</span>
-                <Input {...form.register("passport_nationality")} />
+                <Input
+                  {...form.register("passport_nationality")}
+                  list="country-options"
+                  placeholder="Start typing to search countries"
+                />
               </label>
               <label className="space-y-1">
                 <span className="text-sm font-semibold">Country of residence</span>
-                <Input {...form.register("residence_country")} />
+                <Input
+                  {...form.register("residence_country")}
+                  list="country-options"
+                  placeholder="Start typing to search countries"
+                />
               </label>
             </div>
             <label className="space-y-1">
               <span className="text-sm font-semibold">Visa notes</span>
               <Input {...form.register("visa_notes")} />
             </label>
+            <datalist id="country-options">
+              {COUNTRY_OPTIONS.map((country) => (
+                <option key={country} value={country} />
+              ))}
+            </datalist>
           </Section>
 
           <div className="flex flex-wrap gap-3">

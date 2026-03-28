@@ -52,7 +52,6 @@ export type ParticipantPreferenceInput = {
   max_travel_time_hours: number;
   transport_preference: TransportPreference;
   total_budget: number;
-  budget_flexibility?: number;
   trip_preferences: TripPreferenceTag[];
   accessibility: AccessibilityNeeds;
   dietary: DietaryNeeds;

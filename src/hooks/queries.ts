@@ -87,10 +87,10 @@ export function useSavePreferences(tripId: string, participantId: string) {
   });
 }
 
-export function useGenerateOptions(tripId: string) {
+export function useGenerateOptions(tripId: string, onProgress?: (stepId: string, status: "in-progress" | "complete" | "error", message?: string) => void) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => generateTripOptions(tripId),
+    mutationFn: () => generateTripOptions(tripId, onProgress),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trip-options", tripId] });
       queryClient.invalidateQueries({ queryKey: ["votes", tripId] });

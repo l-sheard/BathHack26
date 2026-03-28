@@ -5,8 +5,6 @@ import type { PreferencesFormValues } from "../schemas/preferencesSchema";
 export async function createTrip(input: {
   name: string;
   description?: string;
-  start_date?: string;
-  end_date?: string;
 }) {
   const shareCode = randomCode(8);
   const { data, error } = await supabase
@@ -14,8 +12,8 @@ export async function createTrip(input: {
     .insert({
       name: input.name,
       description: input.description,
-      start_date: input.start_date || null,
-      end_date: input.end_date || null,
+      start_date: null,
+      end_date: null,
       share_code: shareCode
     })
     .select("*")
@@ -94,7 +92,6 @@ export async function upsertParticipantPreferences(
     max_travel_time_hours: values.max_travel_time_hours,
     transport_preference: values.transport_preference,
     total_budget: values.total_budget,
-    budget_flexibility: values.budget_flexibility || null,
     trip_preferences: values.trip_preferences,
     accessibility: values.accessibility,
     dietary: values.dietary,

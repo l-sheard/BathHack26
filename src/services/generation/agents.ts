@@ -1,5 +1,6 @@
 import { ACCOMMODATIONS, ACTIVITIES, DESTINATIONS, RESTAURANTS } from "../../data/mockCatalog";
 import { supabase } from "../../lib/supabase";
+import { fetchDestinationImage } from "../imageService";
 import type { AggregatedConstraints, GeneratedOption, TripPreferenceTag } from "../../types/models";
 import { generateTripOptionsWithLLM, isAiPlannerEnabled } from "./llmPlanner";
 
@@ -16,7 +17,6 @@ type ParticipantRow = {
     max_travel_time_hours: number;
     transport_preference: "plane" | "train" | "either";
     total_budget: number;
-    budget_flexibility: number | null;
     trip_preferences: TripPreferenceTag[];
     accessibility: Record<string, boolean | string>;
     dietary: Record<string, boolean | string>;
@@ -89,7 +89,7 @@ export async function aggregateConstraints(tripId: string): Promise<AggregatedCo
   const { data, error } = await supabase
     .from("trip_participants")
     .select(
-      "id,name,email,participant_preferences(id,preferred_trip_length,flexibility_notes,departure_location,alternative_locations,max_travel_time_hours,transport_preference,total_budget,budget_flexibility,trip_preferences,accessibility,dietary,sustainability,passport_nationality,residence_country,visa_notes,availability_windows(start_date,end_date))"
+      "id,name,email,participant_preferences(id,preferred_trip_length,flexibility_notes,departure_location,alternative_locations,max_travel_time_hours,transport_preference,total_budget,trip_preferences,accessibility,dietary,sustainability,passport_nationality,residence_country,visa_notes,availability_windows(start_date,end_date))"
     )
     .eq("trip_id", tripId);
 
@@ -362,15 +362,47 @@ export function generateOptionSetFromConstraints(constraints: AggregatedConstrai
     throw new Error("Not enough destination candidates to generate 3 options.");
   }
 
-  const cheapest = [...ranked].sort((a, b) => a.avgDailyCost - b.avgDailyCost)[0];
-  const bestMatch = ranked[0];
-  const mostSustainable = [...ranked].sort((a, b) => b.ecoScore - a.ecoScore)[0];
+  const usedDestinations = new Set<string>();
+  const selectDistinct = (orderedCandidates: DestinationCandidate[]) => {
+    const candidate = orderedCandidates.find((item) => !usedDestinations.has(item.destination)) ?? orderedCandidates[0];
+    usedDestinations.add(candidate.destination);
+    return candidate;
+  };
+
+  const cheapest = selectDistinct([...ranked].sort((a, b) => a.avgDailyCost - b.avgDailyCost));
+  const bestMatch = selectDistinct(ranked);
+  const mostSustainable = selectDistinct([...ranked].sort((a, b) => b.ecoScore - a.ecoScore));
 
   return [
     buildOption(1, "cheapest", cheapest, constraints),
     buildOption(2, "best_match", bestMatch, constraints),
     buildOption(3, "most_sustainable", mostSustainable, constraints)
   ];
+}
+
+function normalizeDestination(destination: string) {
+  return destination.trim().toLowerCase();
+}
+
+function enforceDistinctOptionDestinations(options: GeneratedOption[], constraints: AggregatedConstraints) {
+  const ranked = generateDestinationCandidates(constraints);
+  const usedDestinations = new Set<string>();
+
+  return options.map((option, index) => {
+    const currentKey = normalizeDestination(option.destination);
+    if (!usedDestinations.has(currentKey)) {
+      usedDestinations.add(currentKey);
+      return { ...option, optionRank: index + 1 };
+    }
+
+    const replacement = ranked.find((candidate) => !usedDestinations.has(normalizeDestination(candidate.destination)));
+    if (!replacement) {
+      return { ...option, optionRank: index + 1 };
+    }
+
+    usedDestinations.add(normalizeDestination(replacement.destination));
+    return buildOption(index + 1, option.theme, replacement, constraints);
+  });
 }
 
 export function validateTripOption(option: Omit<GeneratedOption, "validationNotes">, constraints: AggregatedConstraints) {
@@ -454,55 +486,136 @@ function buildOption(
   };
 }
 
-export async function generateTripOptions(tripId: string) {
+export async function generateTripOptions(
+  tripId: string,
+  onProgress?: (stepId: string, status: "in-progress" | "complete" | "error", message?: string) => void
+) {
+  const updateProgress = (stepId: string, status: "in-progress" | "complete" | "error", message?: string) => {
+    onProgress?.(stepId, status, message);
+  };
+
+  updateProgress("gather-preferences", "in-progress");
   const constraints = await aggregateConstraints(tripId);
+  updateProgress("gather-preferences", "complete");
+
+  updateProgress("find-dates", "in-progress");
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  updateProgress("find-dates", "complete");
+
+  updateProgress("select-destination", "in-progress");
   let options: GeneratedOption[];
 
   if (isAiPlannerEnabled()) {
     try {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
       options = await generateTripOptionsWithLLM(constraints);
+      updateProgress("select-destination", "complete");
+
+      updateProgress("plan-transport", "in-progress");
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      updateProgress("plan-transport", "complete");
+
+      updateProgress("find-accommodation", "in-progress");
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      updateProgress("find-accommodation", "complete");
+
+      updateProgress("arrange-dining", "in-progress");
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      updateProgress("arrange-dining", "complete");
+
+      updateProgress("check-visas", "in-progress");
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      updateProgress("check-visas", "complete");
     } catch (error) {
       console.warn("AI planner failed; falling back to deterministic planner:", error);
+      updateProgress("select-destination", "error", String(error));
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      updateProgress("select-destination", "in-progress");
       options = generateOptionSetFromConstraints(constraints);
+      updateProgress("select-destination", "complete");
+      updateProgress("plan-transport", "complete");
+      updateProgress("find-accommodation", "complete");
+      updateProgress("arrange-dining", "complete");
+      updateProgress("check-visas", "complete");
     }
   } else {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
     options = generateOptionSetFromConstraints(constraints);
+    updateProgress("select-destination", "complete");
+    updateProgress("plan-transport", "complete");
+    updateProgress("find-accommodation", "complete");
+    updateProgress("arrange-dining", "complete");
+    updateProgress("check-visas", "complete");
   }
+
+  options = enforceDistinctOptionDestinations(options, constraints);
 
   const { data: existingOptions } = await supabase.from("trip_options").select("id").eq("trip_id", tripId);
   const existingIds = (existingOptions ?? []).map((row: { id: string }) => row.id);
+  
   if (existingIds.length > 0) {
-    await Promise.all([
-      supabase.from("transport_plans").delete().in("trip_option_id", existingIds),
-      supabase.from("accommodation_options").delete().in("trip_option_id", existingIds),
-      supabase.from("restaurant_recommendations").delete().in("trip_option_id", existingIds),
-      supabase.from("visa_assessments").delete().in("trip_option_id", existingIds),
-      supabase.from("itinerary_days").delete().in("trip_option_id", existingIds),
-      supabase.from("activity_recommendations").delete().in("trip_option_id", existingIds),
-      supabase.from("trip_options").delete().in("id", existingIds)
-    ]);
+    // Delete related records first
+    await supabase.from("transport_plans").delete().in("trip_option_id", existingIds);
+    await supabase.from("accommodation_options").delete().in("trip_option_id", existingIds);
+    await supabase.from("restaurant_recommendations").delete().in("trip_option_id", existingIds);
+    await supabase.from("visa_assessments").delete().in("trip_option_id", existingIds);
+    await supabase.from("itinerary_days").delete().in("trip_option_id", existingIds);
+    await supabase.from("activity_recommendations").delete().in("trip_option_id", existingIds);
+    
+    // Then delete trip options
+    await supabase.from("trip_options").delete().in("id", existingIds);
   }
 
+  updateProgress("save-results", "in-progress");
   for (const option of options) {
-    const { data: insertedOption, error: optionError } = await supabase
+    // Fetch destination image
+    const imageUrl = await fetchDestinationImage(option.destination);
+
+    const optionPayload = {
+      trip_id: tripId,
+      option_rank: option.optionRank,
+      theme: option.theme,
+      destination: option.destination,
+      start_date: option.startDate,
+      end_date: option.endDate,
+      summary: option.summary,
+      rationale: option.rationale,
+      estimated_total: option.estimatedTotal,
+      estimated_per_person: option.estimatedPerPerson,
+      tradeoffs: option.tradeoffs,
+      validation_notes: option.validationNotes,
+      budget_breakdown: option.budgetBreakdown
+    };
+
+    let insertedOption: { id: string } | null = null;
+    let optionError: { message: string } | null = null;
+
+    const insertWithImage = await supabase
       .from("trip_options")
-      .insert({
-        trip_id: tripId,
-        option_rank: option.optionRank,
-        theme: option.theme,
-        destination: option.destination,
-        start_date: option.startDate,
-        end_date: option.endDate,
-        summary: option.summary,
-        rationale: option.rationale,
-        estimated_total: option.estimatedTotal,
-        estimated_per_person: option.estimatedPerPerson,
-        tradeoffs: option.tradeoffs,
-        validation_notes: option.validationNotes,
-        budget_breakdown: option.budgetBreakdown
+      .upsert({
+        ...optionPayload,
+        image_url: imageUrl
+      }, {
+        onConflict: "trip_id,option_rank"
       })
       .select("id")
       .single();
+
+    insertedOption = insertWithImage.data as { id: string } | null;
+    optionError = insertWithImage.error ? { message: insertWithImage.error.message } : null;
+
+    if (optionError?.message.includes("image_url")) {
+      const insertWithoutImage = await supabase
+        .from("trip_options")
+        .upsert(optionPayload, {
+          onConflict: "trip_id,option_rank"
+        })
+        .select("id")
+        .single();
+
+      insertedOption = insertWithoutImage.data as { id: string } | null;
+      optionError = insertWithoutImage.error ? { message: insertWithoutImage.error.message } : null;
+    }
 
     if (optionError || !insertedOption) {
       throw new Error(optionError?.message ?? "Failed to insert trip option");
@@ -575,5 +688,6 @@ export async function generateTripOptions(tripId: string) {
     );
   }
 
+  updateProgress("save-results", "complete");
   return options;
 }

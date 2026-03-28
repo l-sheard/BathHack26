@@ -8,8 +8,6 @@ import { useCreateTrip } from "../hooks/queries";
 export function CreateTripPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
 
   const createTrip = useCreateTrip();
   const navigate = useNavigate();
@@ -34,25 +32,12 @@ export function CreateTripPage() {
         />
       </label>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="block space-y-1">
-          <span className="text-sm font-semibold">Optional start date</span>
-          <Input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-semibold">Optional end date</span>
-          <Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
-        </label>
-      </div>
-
       <Button
         disabled={!name.trim() || createTrip.isPending}
         onClick={async () => {
           const trip = await createTrip.mutateAsync({
             name,
-            description,
-            start_date: startDate || undefined,
-            end_date: endDate || undefined
+            description
           });
           navigate(`/trip/${trip.id}/dashboard`);
         }}

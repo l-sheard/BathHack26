@@ -13,7 +13,6 @@ export const preferencesSchema = z.object({
   max_travel_time_hours: z.coerce.number().min(1).max(24),
   transport_preference: z.enum(["plane", "train", "either"]),
   total_budget: z.coerce.number().min(100),
-  budget_flexibility: z.coerce.number().min(0).max(1000).optional(),
   trip_preferences: z
     .array(z.enum(["beach", "city", "nature", "adventure", "relaxation", "nightlife", "culture"]))
     .min(1, "Select at least one trip preference"),
@@ -59,7 +58,6 @@ export const defaultPreferencesValues: PreferencesFormValues = {
   max_travel_time_hours: 6,
   transport_preference: "either",
   total_budget: 700,
-  budget_flexibility: 120,
   trip_preferences: ["city"],
   accessibility: {
     ground_floor: false,
