@@ -128,6 +128,21 @@ async function fetchWikimediaDestinationImage(destination: string): Promise<stri
   return firstPage?.thumbnail?.source ?? null;
 }
 
+function hashSeed(input: string) {
+  let hash = 0;
+  for (let index = 0; index < input.length; index += 1) {
+    hash = (hash << 5) - hash + input.charCodeAt(index);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+function buildRandomAccommodationImageUrl(accommodationName: string, destination: string) {
+  const seed = hashSeed(`${accommodationName}:${destination}`);
+  // Picsum is used as a royalty-free random placeholder source.
+  return `https://picsum.photos/seed/${seed}/1200/800`;
+}
+
 /**
  * Fetch a travel image for a destination from Unsplash
  * Returns a high-quality image URL suitable for the destination
@@ -142,6 +157,15 @@ export async function fetchDestinationImage(destination: string): Promise<string
     return await fetchWikimediaDestinationImage(destination);
   } catch (error) {
     console.error("Failed to fetch destination image:", error);
+    return null;
+  }
+}
+
+export async function fetchAccommodationImage(accommodationName: string, destination: string): Promise<string | null> {
+  try {
+    return buildRandomAccommodationImageUrl(accommodationName, destination);
+  } catch (error) {
+    console.error("Failed to fetch accommodation image:", error);
     return null;
   }
 }

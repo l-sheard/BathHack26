@@ -53,6 +53,39 @@ function isEstimatedQuote(details: unknown) {
   return typeof details === "string" && /\[(?:Estimated|Mock quote)\]/i.test(details);
 }
 
+function parseAccommodationMeta(accommodation: any) {
+  const features = Array.isArray(accommodation?.accessibility_features)
+    ? accommodation.accessibility_features.map((item: unknown) => String(item))
+    : [];
+
+  const facilities: string[] = [];
+  let numBeds: number | null = null;
+  let location: string | null = null;
+
+  for (const feature of features) {
+    if (feature.startsWith("beds:")) {
+      const value = Number(feature.slice(5));
+      if (Number.isFinite(value) && value > 0) {
+        numBeds = Math.round(value);
+      }
+      continue;
+    }
+
+    if (feature.startsWith("location:")) {
+      location = feature.slice("location:".length).trim();
+      continue;
+    }
+
+    facilities.push(feature);
+  }
+
+  return {
+    facilities,
+    numBeds,
+    location
+  };
+}
+
 export function TripOptionDetailPage() {
   const { tripId = "", optionId = "" } = useParams();
   const [search] = useSearchParams();
@@ -61,6 +94,7 @@ export function TripOptionDetailPage() {
   const options = useTripOptions(tripId);
   const option = options.data?.find((item: any) => item.id === optionId);
   const accommodation = option?.accommodation_options?.[0];
+  const accommodationMeta = parseAccommodationMeta(accommodation);
 
   const [fallbackImage, setFallbackImage] = useState<string | null>(null);
 
@@ -161,6 +195,12 @@ export function TripOptionDetailPage() {
             <div className="font-semibold">Accommodation</div>
             <div>{accommodation?.name ?? "TBD"}</div>
             <div className="text-xs text-slate-500">{accommodation?.description}</div>
+            <div className="mt-2 text-xs text-slate-600">Price: {currency(accommodation?.nightly_cost ?? 0)} / night</div>
+            <div className="text-xs text-slate-600">Beds: {accommodationMeta.numBeds ?? "TBD"}</div>
+            <div className="text-xs text-slate-600">Location: {accommodationMeta.location ?? "Central area"}</div>
+            <div className="mt-1 text-xs text-slate-600">
+              Facilities: {accommodationMeta.facilities.length > 0 ? accommodationMeta.facilities.join(", ") : "TBD"}
+            </div>
           </div>
         </div>
 

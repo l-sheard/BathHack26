@@ -2,6 +2,7 @@ import { ACCOMMODATIONS, ACTIVITIES, DESTINATIONS, RESTAURANTS } from "../../dat
 import { supabase } from "../../lib/supabase";
 import { fetchDestinationImage } from "../imageService";
 import { fetchFlightQuote, fetchMockFlightQuoteWithLLM, type FlightQuote } from "./amadeusService";
+import { fetchAccommodationEstimateWithLLM } from "./accommodationService";
 import type { AggregatedConstraints, GeneratedOption, TripPreferenceTag } from "../../types/models";
 import { generateTripOptionsWithLLM, isAiPlannerEnabled } from "./llmPlanner";
 
@@ -405,6 +406,77 @@ async function enrichOptionsWithLiveTransport(options: GeneratedOption[], constr
   );
 }
 
+function getTripNights(startDate: string, endDate: string) {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffMs = end.getTime() - start.getTime();
+  if (!Number.isFinite(diffMs) || diffMs <= 0) {
+    return 3;
+  }
+  return Math.max(2, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+}
+
+function recomputeBudgetWithAccommodation(option: GeneratedOption, nightlyCost: number, participantCount: number) {
+  const nights = getTripNights(option.startDate, option.endDate);
+  const roomFactor = Math.max(1, participantCount / 2);
+  const accommodationTotal = Math.round(nightlyCost * nights * roomFactor);
+  const estimatedTotal = Math.round(
+    option.budgetBreakdown.transport + accommodationTotal + option.budgetBreakdown.food + option.budgetBreakdown.activities
+  );
+
+  return {
+    estimatedTotal,
+    estimatedPerPerson: Math.round(estimatedTotal / Math.max(1, participantCount)),
+    budgetBreakdown: {
+      ...option.budgetBreakdown,
+      accommodation: accommodationTotal
+    }
+  };
+}
+
+async function enrichOptionsWithLlmAccommodation(options: GeneratedOption[], constraints: AggregatedConstraints) {
+  if (!isAiPlannerEnabled()) {
+    return options;
+  }
+
+  return Promise.all(
+    options.map(async (option) => {
+      const nights = getTripNights(option.startDate, option.endDate);
+      const destination = resolveDestinationCandidate(option.destination);
+      const estimate = await fetchAccommodationEstimateWithLLM({
+        destination: option.destination,
+        country: destination.country,
+        nights,
+        maxBudgetPerPerson: constraints.hardConstraints.maxBudgetPerPerson,
+        groupSize: constraints.participantCount
+      });
+
+      if (!estimate) {
+        return option;
+      }
+
+      const budget = recomputeBudgetWithAccommodation(option, estimate.nightlyCostGbp, constraints.participantCount);
+      return {
+        ...option,
+        accommodation: {
+          ...option.accommodation,
+          name: estimate.name,
+          description: `${estimate.stayType === "hotel" ? "Hotel" : "Apartment"}: ${estimate.description}`,
+          nightlyCost: estimate.nightlyCostGbp,
+          facilities: estimate.facilities,
+          numBeds: estimate.numBeds,
+          location: estimate.location,
+          accessibilityFeatures: estimate.facilities,
+          ecoRating: estimate.ecoRating
+        },
+        estimatedTotal: budget.estimatedTotal,
+        estimatedPerPerson: budget.estimatedPerPerson,
+        budgetBreakdown: budget.budgetBreakdown
+      };
+    })
+  );
+}
+
 export function generateAccommodationOption(destination: DestinationCandidate, constraints: AggregatedConstraints) {
   const candidates = ACCOMMODATIONS.filter((item) => item.destination === destination.destination);
   const needsWheelchair = constraints.hardConstraints.strictAccessibility.includes("wheelchair_accessible");
@@ -661,6 +733,9 @@ function buildOption(
       name: accommodation.name,
       description: accommodation.description,
       nightlyCost: accommodation.nightlyCost,
+      facilities: accommodation.accessibilityFeatures,
+      numBeds: Math.max(1, Math.ceil(constraints.participantCount / 2)),
+      location: `${destination.destination} city centre`,
       accessibilityFeatures: accommodation.accessibilityFeatures,
       ecoRating: accommodation.ecoRating
     },
@@ -689,15 +764,37 @@ export async function generateTripOptions(
     onProgress?.(stepId, status, message);
   };
 
-  updateProgress("gather-preferences", "in-progress");
+  updateProgress(
+    "gather-preferences",
+    "in-progress",
+    "Reading participant budgets, transport preferences, dietary needs, and accessibility constraints."
+  );
   const constraints = await aggregateConstraints(tripId);
-  updateProgress("gather-preferences", "complete");
+  updateProgress(
+    "gather-preferences",
+    "complete",
+    `Loaded ${constraints.participantCount} participant profile${constraints.participantCount === 1 ? "" : "s"}.`
+  );
 
-  updateProgress("find-dates", "in-progress");
+  updateProgress(
+    "find-dates",
+    "in-progress",
+    "Intersecting availability windows and validating feasible trip length."
+  );
   await new Promise((resolve) => setTimeout(resolve, 800));
-  updateProgress("find-dates", "complete");
+  updateProgress(
+    "find-dates",
+    "complete",
+    constraints.hardConstraints.overlappingDates
+      ? `Overlap found: ${constraints.hardConstraints.overlappingDates.start_date} to ${constraints.hardConstraints.overlappingDates.end_date}.`
+      : "No strict overlap found, using best fallback window for planning."
+  );
 
-  updateProgress("select-destination", "in-progress");
+  updateProgress(
+    "select-destination",
+    "in-progress",
+    "Scoring destinations by preference fit, cost, sustainability, and accessibility."
+  );
   let options: GeneratedOption[];
 
   if (isAiPlannerEnabled()) {
@@ -706,54 +803,102 @@ export async function generateTripOptions(
       await new Promise((resolve) => setTimeout(resolve, 1200));
       options = await generateTripOptionsWithLLM(constraints);
       console.info("[generation] LLM generation succeeded");
-      updateProgress("select-destination", "complete");
+      updateProgress(
+        "select-destination",
+        "complete",
+        `Drafted destinations: ${options.map((option) => option.destination).join(", ")}.`
+      );
 
-      updateProgress("plan-transport", "in-progress");
+      updateProgress(
+        "plan-transport",
+        "in-progress",
+        "Building initial per-participant transport plan before quote enrichment."
+      );
       await new Promise((resolve) => setTimeout(resolve, 800));
-      updateProgress("plan-transport", "complete");
+      updateProgress("plan-transport", "complete", "Initial route structure generated.");
 
-      updateProgress("find-accommodation", "in-progress");
+      updateProgress(
+        "find-accommodation",
+        "in-progress",
+        "Drafting accommodation candidates to match group budget and needs."
+      );
       await new Promise((resolve) => setTimeout(resolve, 800));
-      updateProgress("find-accommodation", "complete");
+      updateProgress("find-accommodation", "complete", "Accommodation drafts prepared.");
 
-      updateProgress("arrange-dining", "in-progress");
+      updateProgress(
+        "arrange-dining",
+        "in-progress",
+        "Selecting dining options with dietary compatibility and spend balance."
+      );
       await new Promise((resolve) => setTimeout(resolve, 600));
-      updateProgress("arrange-dining", "complete");
+      updateProgress("arrange-dining", "complete", "Dining shortlist generated.");
 
-      updateProgress("check-visas", "in-progress");
+      updateProgress(
+        "check-visas",
+        "in-progress",
+        "Checking visa outcomes per nationality for each destination option."
+      );
       await new Promise((resolve) => setTimeout(resolve, 600));
-      updateProgress("check-visas", "complete");
+      updateProgress("check-visas", "complete", "Visa summaries attached to all options.");
     } catch (error) {
       console.warn("AI planner failed; falling back to deterministic planner:", error);
       console.info("[generation] Using deterministic fallback after AI failure");
-      updateProgress("select-destination", "error", String(error));
+      updateProgress("select-destination", "error", `AI draft failed, switching to deterministic planner: ${String(error)}`);
       await new Promise((resolve) => setTimeout(resolve, 500));
-      updateProgress("select-destination", "in-progress");
+      updateProgress(
+        "select-destination",
+        "in-progress",
+        "Rebuilding options with deterministic planner to keep generation reliable."
+      );
       options = generateOptionSetFromConstraints(constraints);
-      updateProgress("select-destination", "complete");
-      updateProgress("plan-transport", "complete");
-      updateProgress("find-accommodation", "complete");
-      updateProgress("arrange-dining", "complete");
-      updateProgress("check-visas", "complete");
+      updateProgress(
+        "select-destination",
+        "complete",
+        `Fallback destinations: ${options.map((option) => option.destination).join(", ")}.`
+      );
+      updateProgress("plan-transport", "complete", "Transport plan generated via fallback logic.");
+      updateProgress("find-accommodation", "complete", "Accommodation plan generated via fallback logic.");
+      updateProgress("arrange-dining", "complete", "Dining plan generated via fallback logic.");
+      updateProgress("check-visas", "complete", "Visa checks generated via fallback logic.");
     }
   } else {
     console.info("[generation] AI planner disabled, using deterministic generation");
     await new Promise((resolve) => setTimeout(resolve, 1200));
     options = generateOptionSetFromConstraints(constraints);
-    updateProgress("select-destination", "complete");
-    updateProgress("plan-transport", "complete");
-    updateProgress("find-accommodation", "complete");
-    updateProgress("arrange-dining", "complete");
-    updateProgress("check-visas", "complete");
+    updateProgress(
+      "select-destination",
+      "complete",
+      `Deterministic planner selected: ${options.map((option) => option.destination).join(", ")}.`
+    );
+    updateProgress("plan-transport", "complete", "Transport baseline completed.");
+    updateProgress("find-accommodation", "complete", "Accommodation baseline completed.");
+    updateProgress("arrange-dining", "complete", "Dining baseline completed.");
+    updateProgress("check-visas", "complete", "Visa baseline completed.");
   }
 
   options = enforceDistinctOptionDestinations(options, constraints);
+  updateProgress(
+    "plan-transport",
+    "in-progress",
+    USE_SERPAPI_LIVE_FLIGHTS
+      ? "Enriching transport with live flight quotes and recalculating totals."
+      : "Enriching transport with LLM-estimated flight quotes and recalculating totals."
+  );
   if (USE_SERPAPI_LIVE_FLIGHTS) {
     console.info("[generation] Enriching transport with live SerpApi quotes");
   } else {
     console.info("[generation] Live flight quotes disabled; generating LLM-estimated flight quotes");
   }
   options = await enrichOptionsWithLiveTransport(options, constraints);
+  updateProgress("plan-transport", "complete", "Final transport quotes attached to each option.");
+
+  updateProgress(
+    "find-accommodation",
+    "in-progress",
+    "Generating richer accommodation details (facilities, beds, location) and refreshing budget totals."
+  );
+  options = await enrichOptionsWithLlmAccommodation(options, constraints);
+  updateProgress("find-accommodation", "complete", "Accommodation details finalized and totals refreshed.");
 
   const { data: existingOptions } = await supabase.from("trip_options").select("id").eq("trip_id", tripId);
   const existingIds = (existingOptions ?? []).map((row: { id: string }) => row.id);
@@ -771,7 +916,7 @@ export async function generateTripOptions(
     await supabase.from("trip_options").delete().in("id", existingIds);
   }
 
-  updateProgress("save-results", "in-progress");
+  updateProgress("save-results", "in-progress", "Persisting options and related transport/accommodation/itinerary records.");
   for (const option of options) {
     // Fetch destination image
     const imageUrl = await fetchDestinationImage(option.destination);
@@ -846,7 +991,11 @@ export async function generateTripOptions(
         name: option.accommodation.name,
         description: option.accommodation.description,
         nightly_cost: option.accommodation.nightlyCost,
-        accessibility_features: option.accommodation.accessibilityFeatures,
+        accessibility_features: [
+          ...(option.accommodation.facilities ?? []),
+          `beds:${option.accommodation.numBeds}`,
+          `location:${option.accommodation.location}`
+        ],
         eco_rating: option.accommodation.ecoRating
       }),
       supabase.from("restaurant_recommendations").insert(
@@ -893,7 +1042,7 @@ export async function generateTripOptions(
     );
   }
 
-  updateProgress("save-results", "complete");
+  updateProgress("save-results", "complete", `Saved ${options.length} trip option${options.length === 1 ? "" : "s"}.`);
   console.info("[generation] Finished generation and saved options", {
     tripId,
     optionCount: options.length

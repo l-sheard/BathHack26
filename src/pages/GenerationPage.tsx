@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -16,6 +16,49 @@ const GENERATION_STEPS = [
   { id: "save-results", title: "Saving results", description: "Storing trip options in your dashboard..." }
 ];
 
+const STEP_THOUGHT_PROMPTS: Record<string, string[]> = {
+  "gather-preferences": [
+    "Aggregating individual budgets into a group-friendly target range.",
+    "Checking transport biases (train, plane, or mixed) across participants.",
+    "Scanning for strict constraints like dietary and accessibility needs."
+  ],
+  "find-dates": [
+    "Intersecting all participant availability windows.",
+    "Estimating trip length from common overlap and flexibility hints.",
+    "Flagging low-overlap windows to avoid risky options."
+  ],
+  "select-destination": [
+    "Scoring destinations by cost, preference fit, accessibility, and sustainability.",
+    "Ensuring final options are distinct so the group has real variety.",
+    "Balancing cheapest, best match, and sustainability themes."
+  ],
+  "plan-transport": [
+    "Estimating per-participant transport cost and travel time.",
+    "Applying preference bias for rail-first or flight-first routing.",
+    "Normalizing quotes so totals are comparable across options."
+  ],
+  "find-accommodation": [
+    "Simulating realistic stay options with beds, facilities, and location context.",
+    "Checking accommodation fit against group comfort and budget.",
+    "Rebalancing total option cost after stay selection."
+  ],
+  "arrange-dining": [
+    "Selecting food spots that satisfy dietary constraints.",
+    "Keeping dining choices aligned to expected spend per person.",
+    "Blending safe picks with varied cuisines."
+  ],
+  "check-visas": [
+    "Comparing nationalities and destination country requirements.",
+    "Classifying outcome as visa-free, eVisa, or manual check.",
+    "Adding practical notes for any uncertain cases."
+  ],
+  "save-results": [
+    "Persisting option summaries, transport, accommodation, and itinerary.",
+    "Final consistency pass before redirecting to options.",
+    "Preparing data for quick review and voting."
+  ]
+};
+
 type StepStatus = "pending" | "in-progress" | "complete" | "error";
 
 interface StepWithStatus {
@@ -23,6 +66,7 @@ interface StepWithStatus {
   title: string;
   description: string;
   status: StepStatus;
+  detail?: string;
   error?: string;
 }
 
@@ -35,16 +79,24 @@ export function GenerationPage() {
     GENERATION_STEPS.map((s) => ({ ...s, status: "pending" as const }))
   );
   const [currentStep, setCurrentStep] = useState<string | null>(null);
+  const [thoughtIndex, setThoughtIndex] = useState(0);
+  const stepRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const generateOptions = useGenerateOptions(tripId, (stepId, status, message) => {
     setCurrentStep(status === "complete" ? null : stepId);
     setProgressSteps((prev) =>
       prev.map((s) =>
         s.id === stepId
-          ? { ...s, status, error: status === "error" ? message : undefined }
+          ? {
+              ...s,
+              status,
+              detail: message ?? s.detail,
+              error: status === "error" ? message : undefined
+            }
           : s
       )
     );
+
   });
 
   useEffect(() => {
@@ -60,6 +112,36 @@ export function GenerationPage() {
     }
   }, [generateOptions.isSuccess, tripId, navigate, participantId]);
 
+  useEffect(() => {
+    if (!currentStep) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setThoughtIndex((prev) => prev + 1);
+    }, 2200);
+
+    return () => clearInterval(timer);
+  }, [currentStep]);
+
+  useEffect(() => {
+    const fallbackStep = progressSteps.find((step) => step.status === "pending")?.id;
+    const targetStepId = currentStep ?? fallbackStep ?? progressSteps[progressSteps.length - 1]?.id;
+    if (!targetStepId) {
+      return;
+    }
+
+    const node = stepRefs.current[targetStepId];
+    if (!node) {
+      return;
+    }
+
+    node.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }, [progressSteps, currentStep]);
+
   return (
     <div className="min-h-screen bg-cream text-ink py-8">
       <div className="mx-auto w-full max-w-4xl px-4">
@@ -68,42 +150,34 @@ export function GenerationPage() {
           subtitle="AI agents are working together to create the perfect options for your group"
         >
           <Card className="space-y-8">
-            <div className="space-y-4">
+            <div className="relative max-h-[62vh] overflow-y-auto pr-2 snap-y snap-mandatory pl-6">
+              <div className="absolute left-[11px] top-2 bottom-2 w-px bg-slate-200" />
               {progressSteps.map((step, index) => {
                 const isComplete = step.status === "complete";
                 const isActive = step.id === currentStep;
                 const isError = step.status === "error";
 
                 return (
-                  <div key={step.id} className="relative">
-                    <div className="flex gap-6">
-                      {/* Timeline indicator */}
-                      <div className="flex flex-col items-center">
-                        <div
-                          className={`w-12 h-12 rounded-full flex items-center justify-center font-semibold text-base transition-all ${
-                            isComplete
-                              ? "bg-emerald-500 text-white shadow-lg"
-                              : isActive
-                                ? "bg-ocean text-white ring-4 ring-ocean/30 animate-pulse"
-                                : isError
-                                  ? "bg-red-500 text-white"
-                                  : "bg-slate-200 text-slate-400"
-                          }`}
-                        >
-                          {isComplete ? "✓" : isActive ? "⚙" : isError ? "!" : index + 1}
-                        </div>
-                        {index < progressSteps.length - 1 && (
-                          <div
-                            className={`w-1 h-16 mt-3 transition-colors ${
-                              isComplete ? "bg-emerald-500" : "bg-slate-200"
-                            }`}
-                          />
-                        )}
-                      </div>
+                  <div
+                    key={step.id}
+                    ref={(node) => {
+                      stepRefs.current[step.id] = node;
+                    }}
+                    className={`relative mb-5 pl-7 snap-start ${index === progressSteps.length - 1 ? "mb-0" : ""}`}
+                  >
+                    <div
+                      className={`absolute left-0 top-1.5 h-[10px] w-[10px] rounded-full ${
+                        isComplete
+                          ? "bg-emerald-500"
+                          : isActive
+                            ? "bg-ocean animate-pulse"
+                            : isError
+                              ? "bg-red-500"
+                              : "bg-slate-300"
+                      }`}
+                    />
 
-                      {/* Content */}
-                      <div className="flex-1 pt-2">
-                        <div className="space-y-2">
+                    <div className="space-y-1.5">
                           <h3
                             className={`font-semibold text-lg transition-colors ${
                               isActive
@@ -115,41 +189,49 @@ export function GenerationPage() {
                                     : "text-slate-600"
                             }`}
                           >
-                            {step.title}
+                            {index + 1}. {step.title}
                           </h3>
-                          <p className="text-sm text-slate-600">{step.description}</p>
+                          <p className="text-sm text-slate-600 leading-relaxed">{step.description}</p>
+
+                          {step.detail && (
+                            <p className="text-xs text-slate-700">
+                              <span className="font-medium text-slate-500">update:</span> {step.detail}
+                            </p>
+                          )}
 
                           {isActive && (
-                            <div className="mt-3 flex items-center gap-3">
-                              <div className="flex gap-1.5">
-                                <span className="inline-block w-2.5 h-2.5 bg-ocean rounded-full animate-bounce" />
-                                <span
-                                  className="inline-block w-2.5 h-2.5 bg-ocean rounded-full animate-bounce"
-                                  style={{ animationDelay: "0.2s" }}
-                                />
-                                <span
-                                  className="inline-block w-2.5 h-2.5 bg-ocean rounded-full animate-bounce"
-                                  style={{ animationDelay: "0.4s" }}
-                                />
+                            <div className="mt-2 space-y-1">
+                              <div className="flex items-center gap-3">
+                                <div className="flex gap-1.5">
+                                  <span className="inline-block w-2.5 h-2.5 bg-ocean rounded-full animate-bounce" />
+                                  <span
+                                    className="inline-block w-2.5 h-2.5 bg-ocean rounded-full animate-bounce"
+                                    style={{ animationDelay: "0.2s" }}
+                                  />
+                                  <span
+                                    className="inline-block w-2.5 h-2.5 bg-ocean rounded-full animate-bounce"
+                                    style={{ animationDelay: "0.4s" }}
+                                  />
+                                </div>
+                                <span className="text-sm text-ocean font-medium">Agent thinking...</span>
                               </div>
-                              <span className="text-sm text-ocean font-medium">Agent thinking...</span>
+
+                              <p className="text-xs text-ocean/90 pl-1">
+                                {STEP_THOUGHT_PROMPTS[step.id]?.[thoughtIndex % Math.max(1, STEP_THOUGHT_PROMPTS[step.id]?.length ?? 1)]}
+                              </p>
                             </div>
                           )}
 
                           {isError && step.error && (
-                            <div className="mt-3 rounded-lg bg-red-50 p-3 border border-red-200">
-                              <p className="text-sm text-red-700">{step.error}</p>
-                            </div>
+                            <p className="text-sm text-red-700">Error: {step.error}</p>
                           )}
 
                           {isComplete && (
-                            <div className="mt-2 text-sm text-emerald-700 font-medium flex items-center gap-2">
+                            <div className="text-sm text-emerald-700 font-medium flex items-center gap-2">
                               <span>✓</span>
                               <span>Complete</span>
                             </div>
                           )}
-                        </div>
-                      </div>
                     </div>
                   </div>
                 );
@@ -159,14 +241,14 @@ export function GenerationPage() {
             {/* Summary */}
             <div className="border-t border-slate-200 pt-6">
               <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-lg bg-slate-50 p-4">
+                <div>
                   <div className="text-sm text-slate-600 mb-1">Progress</div>
                   <div className="text-2xl font-bold text-ocean">
                     {progressSteps.filter((s) => s.status === "complete").length}/{progressSteps.length}
                   </div>
                 </div>
 
-                <div className="rounded-lg bg-slate-50 p-4">
+                <div>
                   <div className="text-sm text-slate-600 mb-1">Current Step</div>
                   <div className="text-base font-semibold text-ink">
                     {currentStep
@@ -177,18 +259,19 @@ export function GenerationPage() {
                   </div>
                 </div>
 
-                <div className="rounded-lg bg-slate-50 p-4">
+                <div>
                   <div className="text-sm text-slate-600 mb-1">Status</div>
                   <div className={`text-base font-semibold ${generateOptions.isSuccess ? "text-emerald-700" : generateOptions.isError ? "text-red-700" : "text-ocean"}`}>
                     {generateOptions.isSuccess ? "Done" : generateOptions.isError ? "Error" : "In progress"}
                   </div>
                 </div>
               </div>
+
             </div>
 
             {/* Success message */}
             {generateOptions.isSuccess && (
-              <div className="rounded-lg bg-emerald-50 p-4 border border-emerald-200">
+              <div className="pt-2">
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">✨</span>
                   <div>
@@ -203,7 +286,7 @@ export function GenerationPage() {
 
             {/* Error message */}
             {generateOptions.isError && (
-              <div className="rounded-lg bg-red-50 p-4 border border-red-200">
+              <div className="pt-2">
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">⚠️</span>
                   <div>

@@ -17,6 +17,39 @@ function formatUkDate(dateValue: string) {
   return parsed.toLocaleDateString("en-GB");
 }
 
+function parseAccommodationMeta(accommodation: any) {
+  const features = Array.isArray(accommodation?.accessibility_features)
+    ? accommodation.accessibility_features.map((item: unknown) => String(item))
+    : [];
+
+  const facilities: string[] = [];
+  let numBeds: number | null = null;
+  let location: string | null = null;
+
+  for (const feature of features) {
+    if (feature.startsWith("beds:")) {
+      const value = Number(feature.slice(5));
+      if (Number.isFinite(value) && value > 0) {
+        numBeds = Math.round(value);
+      }
+      continue;
+    }
+
+    if (feature.startsWith("location:")) {
+      location = feature.slice("location:".length).trim();
+      continue;
+    }
+
+    facilities.push(feature);
+  }
+
+  return {
+    facilities,
+    numBeds,
+    location
+  };
+}
+
 function TripOptionSummary({
   option,
   imageUrl,
@@ -27,6 +60,7 @@ function TripOptionSummary({
   onClick: () => void;
 }) {
   const accommodation = option.accommodation_options?.[0];
+  const accommodationMeta = parseAccommodationMeta(accommodation);
   const transportPlans = option.transport_plans ?? [];
   const flightCount = transportPlans.filter((plan: any) => plan.mode === "plane").length;
   const trainCount = transportPlans.filter((plan: any) => plan.mode === "train").length;
@@ -75,6 +109,12 @@ function TripOptionSummary({
               <div className="rounded-lg bg-slate-50 p-3 text-sm">
                 <div className="font-semibold">Accommodation</div>
                 <div>{accommodation?.name ?? "TBD"}</div>
+                <div className="mt-1 text-xs text-slate-600">Price: {currency(accommodation?.nightly_cost ?? 0)} / night</div>
+                <div className="text-xs text-slate-600">Beds: {accommodationMeta.numBeds ?? "TBD"}</div>
+                <div className="text-xs text-slate-600">Location: {accommodationMeta.location ?? "Central area"}</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Facilities: {accommodationMeta.facilities.length > 0 ? accommodationMeta.facilities.slice(0, 4).join(", ") : "TBD"}
+                </div>
               </div>
             </div>
 

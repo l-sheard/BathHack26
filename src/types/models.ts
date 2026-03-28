@@ -117,6 +117,9 @@ export type GeneratedOption = {
     name: string;
     description: string;
     nightlyCost: number;
+    facilities: string[];
+    numBeds: number;
+    location: string;
     accessibilityFeatures: string[];
     ecoRating: number;
   };

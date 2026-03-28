@@ -29,6 +29,9 @@ const optionSchema = z.object({
     name: z.string().min(2),
     description: z.string().min(5),
     nightlyCost: z.number().positive(),
+    facilities: z.array(z.string().min(2)).min(1),
+    numBeds: z.number().int().positive(),
+    location: z.string().min(2),
     accessibilityFeatures: z.array(z.string()),
     ecoRating: z.number().int().min(1).max(5)
   }),
@@ -107,6 +110,7 @@ function buildPlannerPrompt(constraints: AggregatedConstraints) {
     "Respect group constraints. Keep options realistic and internally consistent.",
     "Use only destinations and inventory from the provided context.",
     "Each option must include transport, accommodation, restaurants, visa summaries, itinerary, and budget breakdown.",
+    "Accommodation must include: name, description, nightlyCost, facilities, numBeds, location, accessibilityFeatures, and ecoRating.",
     "Budget breakdown totals should approximately align with estimatedTotal and estimatedPerPerson.",
     "Prefer train and eco-friendly choices if sustainability signals are strong.",
     "\nCONSTRAINTS_JSON:\n" + JSON.stringify(constraints),
