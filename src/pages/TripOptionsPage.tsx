@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Section } from "../components/Section";
@@ -27,6 +27,9 @@ function TripOptionSummary({
   onClick: () => void;
 }) {
   const accommodation = option.accommodation_options?.[0];
+  const transportPlans = option.transport_plans ?? [];
+  const flightCount = transportPlans.filter((plan: any) => plan.mode === "plane").length;
+  const trainCount = transportPlans.filter((plan: any) => plan.mode === "train").length;
   const resolvedImageUrl = imageUrl ?? option.image_url;
   return (
     <div 
@@ -75,6 +78,10 @@ function TripOptionSummary({
               </div>
             </div>
 
+            <p className="text-xs text-slate-600">
+              Transport: {flightCount} flight leg{flightCount === 1 ? "" : "s"}, {trainCount} train leg{trainCount === 1 ? "" : "s"}
+            </p>
+
             <p className="text-xs text-slate-500 italic">Click to see full details →</p>
           </div>
         </div>
@@ -85,7 +92,9 @@ function TripOptionSummary({
 
 export function TripOptionsPage() {
   const { tripId = "" } = useParams();
+  const [search] = useSearchParams();
   const navigate = useNavigate();
+  const participantId = search.get("participantId") ?? undefined;
   const trip = useTrip(tripId);
   const options = useTripOptions(tripId);
   const [fallbackImages, setFallbackImages] = useState<Record<string, string | null>>({});
@@ -142,10 +151,12 @@ export function TripOptionsPage() {
             Three personalized trip options have been created based on your group's preferences. Click any option to see full details.
           </p>
           <div className="flex gap-2">
-            <Button onClick={() => navigate(`/trip/${tripId}/dashboard`)}>Go to dashboard</Button>
+            <Button onClick={() => navigate(`/trip/${tripId}/dashboard${participantId ? `?participantId=${participantId}` : ""}`)}>
+              Go to dashboard
+            </Button>
             <Button
               variant="ghost"
-              onClick={() => navigate(`/trip/${tripId}/dashboard`)}
+              onClick={() => navigate(`/trip/${tripId}/dashboard${participantId ? `?participantId=${participantId}` : ""}`)}
             >
               Back
             </Button>
@@ -163,7 +174,7 @@ export function TripOptionsPage() {
               key={option.id}
               option={option}
               imageUrl={fallbackImages[option.destination]}
-              onClick={() => navigate(`/trip/${tripId}/options/${option.id}`)}
+              onClick={() => navigate(`/trip/${tripId}/options/${option.id}${participantId ? `?participantId=${participantId}` : ""}`)}
             />
           ))}
         </div>

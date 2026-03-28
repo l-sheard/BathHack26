@@ -43,6 +43,9 @@ Hackathon-ready full-stack MVP built with React + TypeScript + Tailwind + Supaba
    - VITE_SUPABASE_ANON_KEY
    - VITE_OPENAI_API_KEY (optional, enables AI planner via LangChain)
    - VITE_OPENAI_MODEL (optional, defaults to gpt-4o-mini)
+   - VITE_USE_LIVE_FLIGHTS (optional, set true to enable SerpApi transport quotes)
+   - VITE_SERPAPI_API_KEY (optional, enables live flight quotes in generation)
+   - VITE_SERPAPI_API_BASE (optional, defaults to https://serpapi.com/search.json)
 
    Optional AI planner packages:
    - npm install langchain @langchain/openai
@@ -51,6 +54,8 @@ Hackathon-ready full-stack MVP built with React + TypeScript + Tailwind + Supaba
 
    - supabase/schema.sql
    - supabase/seed.sql
+   - supabase/demo_flight_trip.sql (optional: creates a fresh flight-focused test trip)
+   - supabase/backfill_flight_demo_preferences.sql (optional: fills missing preferences for all participants in FLIGHT26)
 
 4. Start the app:
 
@@ -62,6 +67,9 @@ Hackathon-ready full-stack MVP built with React + TypeScript + Tailwind + Supaba
    - Demo trip directly (after seed):
      - Trip ID: 11111111-1111-1111-1111-111111111111
      - Share code: DEMO2026
+    - Flight-focused test trip (after demo_flight_trip.sql):
+       - Trip ID: 77777777-7777-7777-7777-777777777777
+       - Share code: FLIGHT26
 
 ## Project structure
 
@@ -69,6 +77,7 @@ Hackathon-ready full-stack MVP built with React + TypeScript + Tailwind + Supaba
 - src/components: reusable UI components
 - src/services/tripService.ts: Supabase CRUD
 - src/services/generation/agents.ts: modular MVP planner agents and option generator
+- src/services/generation/amadeusService.ts: calls SerpApi Google Flights directly from frontend
 - src/schemas/preferencesSchema.ts: zod schema + form defaults
 - src/data/mockCatalog.ts: mock destination/transport/accommodation/restaurant/activity data
 - supabase/schema.sql: database schema
@@ -93,12 +102,15 @@ Inside src/services/generation/agents.ts:
 ## Notes for hackathon judges
 
 - This MVP uses seeded/mock travel inventory and can now optionally use a LangChain LLM planner for option generation.
+- Transport planning uses mock/fake data by default.
+- Set VITE_USE_LIVE_FLIGHTS=true to enable live SerpApi flight quotes during generation.
 - Data model and generation services are structured for easy API replacement later.
 - If AI env vars are not set (or AI call fails), the app falls back to deterministic generation logic.
 
 ## Future integration TODOs
 
 - Move LangChain planner invocation from frontend into a server/edge function so API keys are never exposed to clients
+- Move SerpApi flight lookup behind a server/edge function so API keys are never exposed to clients
 - Replace mock transport planning with live flight/train providers
 - Replace mock accommodation with hotel APIs
 - Replace rule-based visa checks with visa API/provider

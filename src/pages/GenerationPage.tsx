@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Section } from "../components/Section";
@@ -28,7 +28,9 @@ interface StepWithStatus {
 
 export function GenerationPage() {
   const { tripId = "" } = useParams();
+  const [search] = useSearchParams();
   const navigate = useNavigate();
+  const participantId = search.get("participantId") ?? undefined;
   const [progressSteps, setProgressSteps] = useState<StepWithStatus[]>(
     GENERATION_STEPS.map((s) => ({ ...s, status: "pending" as const }))
   );
@@ -52,11 +54,11 @@ export function GenerationPage() {
   useEffect(() => {
     if (generateOptions.isSuccess) {
       const timer = setTimeout(() => {
-        navigate(`/trip/${tripId}/options`);
+        navigate(`/trip/${tripId}/options${participantId ? `?participantId=${participantId}` : ""}`);
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [generateOptions.isSuccess, tripId, navigate]);
+  }, [generateOptions.isSuccess, tripId, navigate, participantId]);
 
   return (
     <div className="min-h-screen bg-cream text-ink py-8">

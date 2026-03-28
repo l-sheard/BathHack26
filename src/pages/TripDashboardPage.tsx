@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Modal } from "../components/Modal";
@@ -9,6 +9,8 @@ import { makeShareLink } from "../lib/utils";
 
 export function TripDashboardPage() {
   const { tripId = "" } = useParams();
+  const [search] = useSearchParams();
+  const participantId = search.get("participantId") ?? undefined;
   const navigate = useNavigate();
   const [isShareOpen, setIsShareOpen] = useState(false);
 
@@ -32,10 +34,19 @@ export function TripDashboardPage() {
               {participants.data?.length ?? 0} participant(s) joined
             </div>
             <div className="flex flex-wrap gap-2">
+              {participantId ? (
+                <Button variant="ghost" onClick={() => navigate(`/trip/${tripId}/preferences/${participantId}`)}>
+                  Fill out my preferences
+                </Button>
+              ) : (
+                <Button variant="ghost" onClick={() => navigate(`/trip/${tripId}/join`)}>
+                  Join trip
+                </Button>
+              )}
               <Button variant="ghost" onClick={() => setIsShareOpen(true)}>
                 Share link
               </Button>
-              <Button onClick={() => navigate(`/trip/${tripId}/generate`)}>
+              <Button onClick={() => navigate(`/trip/${tripId}/generate${participantId ? `?participantId=${participantId}` : ""}`)}>
                 Generate trip options
               </Button>
             </div>
@@ -51,6 +62,12 @@ export function TripDashboardPage() {
                   <div key={participant.id} className="rounded-lg border border-slate-200 p-3 text-sm">
                     <div className="font-semibold">{participant.name}</div>
                     <div className="text-slate-500">{participant.email ?? "No email"}</div>
+                    <Link
+                      to={`/trip/${tripId}/preferences/${participant.id}`}
+                      className="mt-2 inline-block text-xs font-semibold text-ocean hover:underline"
+                    >
+                      Edit preferences
+                    </Link>
                   </div>
                 ))}
               </div>

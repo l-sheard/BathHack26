@@ -39,7 +39,7 @@ export async function joinTrip(
 ) {
   const { data: trip, error: tripError } = await supabase
     .from("trips")
-    .select("id,share_code")
+    .select("id,share_code,start_date,end_date")
     .eq("id", tripId)
     .single();
   if (tripError) throw new Error("Trip not found");
@@ -65,6 +65,71 @@ export async function joinTrip(
     visa_arranged: false,
     insurance_arranged: false
   });
+
+  const fallbackStart = trip.start_date ?? new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString().slice(0, 10);
+  const fallbackEnd =
+    trip.end_date ??
+    new Date(new Date(fallbackStart).getTime() + 1000 * 60 * 60 * 24 * 4).toISOString().slice(0, 10);
+
+  const { data: preference, error: preferenceError } = await supabase
+    .from("participant_preferences")
+    .insert({
+      trip_id: tripId,
+      participant_id: participant.id,
+      preferred_trip_length: 4,
+      flexibility_notes: null,
+      departure_location: "London Heathrow (LHR)",
+      alternative_locations: [],
+      max_travel_time_hours: 8,
+      transport_preference: "either",
+      total_budget: 900,
+      trip_preferences: ["city", "culture", "relaxation"],
+      accessibility: {
+        ground_floor: false,
+        lift_access: false,
+        step_free_access: false,
+        wheelchair_accessible: false,
+        accessible_bathroom: false,
+        reduced_walking: false,
+        close_to_public_transport: true,
+        notes: ""
+      },
+      dietary: {
+        vegetarian: false,
+        vegan: false,
+        halal: false,
+        kosher: false,
+        gluten_free: false,
+        dairy_free: false,
+        nut_allergy: false,
+        notes: ""
+      },
+      sustainability: {
+        prefer_train_over_plane: false,
+        willing_longer_for_lower_emissions: false,
+        prefer_eco_accommodation: false,
+        sustainable_activities: false
+      },
+      passport_nationality: "British",
+      residence_country: "United Kingdom",
+      visa_notes: null
+    })
+    .select("id")
+    .single();
+
+  if (preferenceError) {
+    throw new Error(preferenceError.message);
+  }
+
+  const { error: availabilityError } = await supabase.from("availability_windows").insert({
+    participant_preference_id: preference.id,
+    start_date: fallbackStart,
+    end_date: fallbackEnd
+  });
+
+  if (availabilityError) {
+    throw new Error(availabilityError.message);
+  }
 
   return participant;
 }

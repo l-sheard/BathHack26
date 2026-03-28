@@ -1,6 +1,7 @@
 import { ACCOMMODATIONS, ACTIVITIES, DESTINATIONS, RESTAURANTS } from "../../data/mockCatalog";
 import { supabase } from "../../lib/supabase";
 import { fetchDestinationImage } from "../imageService";
+import { fetchFlightQuote } from "./amadeusService";
 import type { AggregatedConstraints, GeneratedOption, TripPreferenceTag } from "../../types/models";
 import { generateTripOptionsWithLLM, isAiPlannerEnabled } from "./llmPlanner";
 
@@ -40,6 +41,16 @@ type DestinationCandidate = {
   accessibilityScore: number;
   matchScore: number;
 };
+
+const DESTINATION_AIRPORT_IATA: Record<string, string> = {
+  Lisbon: "LIS",
+  Amsterdam: "AMS",
+  Split: "SPU",
+  Copenhagen: "CPH",
+  "Lake Bled": "LJU"
+};
+
+const USE_SERPAPI_LIVE_FLIGHTS = (import.meta.env.VITE_USE_LIVE_FLIGHTS as string | undefined) === "true";
 
 // TODO: Replace static catalog sources with live provider adapters (flights/trains/hotels/visa) after MVP demo.
 
@@ -100,9 +111,71 @@ export async function aggregateConstraints(tripId: string): Promise<AggregatedCo
   const rows = (data ?? []) as ParticipantRow[];
   const validRows = rows.filter((row) => row.participant_preferences.length > 0);
 
-  const participantCount = rows.length;
-  const participants = validRows.map((row) => {
+  if (rows.length === 0) {
+    throw new Error("No participants found in this trip. Add participants before generating trip options.");
+  }
+
+  const sourceRows = validRows.length > 0 ? rows : rows;
+  const defaultWindowStart = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString().slice(0, 10);
+  const defaultWindowEnd = new Date(Date.now() + 1000 * 60 * 60 * 24 * 18).toISOString().slice(0, 10);
+
+  const getPreference = (row: ParticipantRow) => {
     const pref = row.participant_preferences[0];
+    if (pref) {
+      return pref;
+    }
+
+    return {
+      id: `fallback-${row.id}`,
+      preferred_trip_length: 4,
+      flexibility_notes: null,
+      departure_location: "London Heathrow (LHR)",
+      alternative_locations: [],
+      max_travel_time_hours: 8,
+      transport_preference: "either" as const,
+      total_budget: 900,
+      trip_preferences: ["city", "culture", "relaxation"] as TripPreferenceTag[],
+      accessibility: {
+        ground_floor: false,
+        lift_access: false,
+        step_free_access: false,
+        wheelchair_accessible: false,
+        accessible_bathroom: false,
+        reduced_walking: false,
+        close_to_public_transport: true,
+        notes: ""
+      },
+      dietary: {
+        vegetarian: false,
+        vegan: false,
+        halal: false,
+        kosher: false,
+        gluten_free: false,
+        dairy_free: false,
+        nut_allergy: false,
+        notes: ""
+      },
+      sustainability: {
+        prefer_train_over_plane: false,
+        willing_longer_for_lower_emissions: false,
+        prefer_eco_accommodation: false,
+        sustainable_activities: false
+      },
+      passport_nationality: "British",
+      residence_country: "United Kingdom",
+      visa_notes: null,
+      availability_windows: [
+        {
+          start_date: defaultWindowStart,
+          end_date: defaultWindowEnd
+        }
+      ]
+    };
+  };
+
+  const participantCount = rows.length;
+  const participants = sourceRows.map((row) => {
+    const pref = getPreference(row);
     return {
       participantId: row.id,
       name: row.name,
@@ -133,8 +206,8 @@ export async function aggregateConstraints(tripId: string): Promise<AggregatedCo
   let sustainabilityScore = 0;
   let budgetSum = 0;
 
-  for (const row of validRows) {
-    const pref = row.participant_preferences[0];
+  for (const row of sourceRows) {
+    const pref = getPreference(row);
     budgetSum += pref.total_budget;
     for (const tag of pref.trip_preferences) {
       preferenceScores[tag] += 1;
@@ -147,7 +220,7 @@ export async function aggregateConstraints(tripId: string): Promise<AggregatedCo
     if (pref.sustainability?.sustainable_activities) sustainabilityScore += 1;
   }
 
-  const windowsPerPerson = validRows.map((row) => row.participant_preferences[0].availability_windows ?? []);
+  const windowsPerPerson = sourceRows.map((row) => getPreference(row).availability_windows ?? []);
 
   return {
     tripId,
@@ -155,7 +228,7 @@ export async function aggregateConstraints(tripId: string): Promise<AggregatedCo
     participantIds: rows.map((row) => row.id),
     hardConstraints: {
       overlappingDates: overlapWindows(windowsPerPerson),
-      maxBudgetPerPerson: validRows.length > 0 ? Math.round(budgetSum / validRows.length) : 800,
+      maxBudgetPerPerson: Math.round(budgetSum / Math.max(1, sourceRows.length)),
       strictDietaryTags: collectStrictTags(participants, "dietary"),
       strictAccessibility: collectStrictTags(participants, "accessibility")
     },
@@ -213,6 +286,108 @@ export function generateTransportPlan(destination: DestinationCandidate, constra
         | "high"
     };
   });
+}
+
+function extractIataCode(departureLocation: string) {
+  const match = departureLocation.match(/\(([A-Z]{3})\)/);
+  return match?.[1] ?? null;
+}
+
+function resolveDestinationCandidate(destinationName: string): DestinationCandidate {
+  const fallback = DESTINATIONS[0];
+  const match = DESTINATIONS.find((item) => item.destination === destinationName) ?? fallback;
+  return {
+    ...match,
+    matchScore: 0
+  };
+}
+
+async function generateTransportPlanWithFlightQuotes(
+  destination: DestinationCandidate,
+  constraints: AggregatedConstraints,
+  departureDate: string
+) {
+  const destinationIata = DESTINATION_AIRPORT_IATA[destination.destination];
+
+  return Promise.all(
+    constraints.perParticipant.map(async (participant) => {
+      const chooseTrain =
+        participant.transportPreference === "train" ||
+        (participant.transportPreference === "either" &&
+          destination.trainFriendly &&
+          participant.sustainability.prefer_train_over_plane);
+
+      const mode: "train" | "plane" = chooseTrain ? "train" : "plane";
+      const fallbackDurationHours =
+        mode === "train"
+          ? Math.min(14, participant.maxTravelTimeHours + 2)
+          : Math.min(8, participant.maxTravelTimeHours);
+      const fallbackEstimatedCost =
+        mode === "train"
+          ? Math.round(90 + destination.avgDailyCost * 0.25)
+          : Math.round(120 + destination.avgDailyCost * 0.35);
+
+      if (mode === "plane" && destinationIata) {
+        const originIata = extractIataCode(participant.departure);
+        if (originIata) {
+          const quote = await fetchFlightQuote({
+            originIata,
+            destinationIata,
+            departureDate
+          });
+
+          if (quote) {
+            return {
+              participantId: participant.participantId,
+              mode,
+              departure: participant.departure,
+              durationHours: Math.min(24, quote.durationHours),
+              details: `${quote.details} (from ${participant.departure})`,
+              estimatedCost: quote.estimatedCostGbp,
+              emissionsLevel: (destination.ecoScore > 75 ? "medium" : "high") as "low" | "medium" | "high"
+            };
+          }
+        }
+      }
+
+      return {
+        participantId: participant.participantId,
+        mode,
+        departure: participant.departure,
+        durationHours: fallbackDurationHours,
+        details: `${mode === "train" ? "Rail" : "Flight"} from ${participant.departure} to ${destination.destination}`,
+        estimatedCost: fallbackEstimatedCost,
+        emissionsLevel: (mode === "train" ? "low" : destination.ecoScore > 75 ? "medium" : "high") as
+          | "low"
+          | "medium"
+          | "high"
+      };
+    })
+  );
+}
+
+async function enrichOptionsWithLiveTransport(options: GeneratedOption[], constraints: AggregatedConstraints) {
+  return Promise.all(
+    options.map(async (option) => {
+      const destination = resolveDestinationCandidate(option.destination);
+      const transportPlans = await generateTransportPlanWithFlightQuotes(destination, constraints, option.startDate);
+      const transportTotal = transportPlans.reduce((sum, plan) => sum + plan.estimatedCost, 0);
+      const staticCosts =
+        option.budgetBreakdown.accommodation + option.budgetBreakdown.food + option.budgetBreakdown.activities;
+      const estimatedTotal = Math.round(staticCosts + transportTotal);
+
+      return {
+        ...option,
+        transportPlans,
+        estimatedTotal,
+        estimatedPerPerson: Math.round(estimatedTotal / Math.max(1, constraints.participantCount)),
+        budgetBreakdown: {
+          ...option.budgetBreakdown,
+          transport: Math.round(transportTotal)
+        }
+      };
+    })
+  );
 }
 
 export function generateAccommodationOption(destination: DestinationCandidate, constraints: AggregatedConstraints) {
@@ -549,6 +724,9 @@ export async function generateTripOptions(
   }
 
   options = enforceDistinctOptionDestinations(options, constraints);
+  if (USE_SERPAPI_LIVE_FLIGHTS) {
+    options = await enrichOptionsWithLiveTransport(options, constraints);
+  }
 
   const { data: existingOptions } = await supabase.from("trip_options").select("id").eq("trip_id", tripId);
   const existingIds = (existingOptions ?? []).map((row: { id: string }) => row.id);

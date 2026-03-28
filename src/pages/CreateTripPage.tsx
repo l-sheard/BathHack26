@@ -3,13 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
-import { useCreateTrip } from "../hooks/queries";
+import { useCreateTrip, useJoinTrip } from "../hooks/queries";
 
 export function CreateTripPage() {
+  const [creatorName, setCreatorName] = useState("");
+  const [creatorEmail, setCreatorEmail] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
   const createTrip = useCreateTrip();
+  const joinTrip = useJoinTrip();
   const navigate = useNavigate();
 
   return (
@@ -22,6 +25,22 @@ export function CreateTripPage() {
         <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Summer Escape" />
       </label>
 
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="block space-y-1">
+          <span className="text-sm font-semibold">Your name</span>
+          <Input value={creatorName} onChange={(event) => setCreatorName(event.target.value)} placeholder="Alex" />
+        </label>
+
+        <label className="block space-y-1">
+          <span className="text-sm font-semibold">Your email (optional)</span>
+          <Input
+            value={creatorEmail}
+            onChange={(event) => setCreatorEmail(event.target.value)}
+            placeholder="alex@email.com"
+          />
+        </label>
+      </div>
+
       <label className="block space-y-1">
         <span className="text-sm font-semibold">Description</span>
         <textarea
@@ -33,19 +52,28 @@ export function CreateTripPage() {
       </label>
 
       <Button
-        disabled={!name.trim() || createTrip.isPending}
+        disabled={!name.trim() || !creatorName.trim() || createTrip.isPending || joinTrip.isPending}
         onClick={async () => {
           const trip = await createTrip.mutateAsync({
             name,
             description
           });
-          navigate(`/trip/${trip.id}/dashboard`);
+
+          const participant = await joinTrip.mutateAsync({
+            tripId: trip.id,
+            name: creatorName,
+            email: creatorEmail,
+            shareCode: trip.share_code
+          });
+
+          navigate(`/trip/${trip.id}/dashboard?participantId=${participant.id}`);
         }}
       >
-        {createTrip.isPending ? "Creating..." : "Create trip"}
+        {createTrip.isPending || joinTrip.isPending ? "Creating..." : "Create trip"}
       </Button>
 
       {createTrip.error ? <p className="text-sm text-red-600">{String(createTrip.error)}</p> : null}
+      {joinTrip.error ? <p className="text-sm text-red-600">{String(joinTrip.error)}</p> : null}
     </Card>
   );
 }

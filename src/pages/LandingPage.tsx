@@ -1,8 +1,14 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { Input } from "../components/Input";
 
 export function LandingPage() {
+  const navigate = useNavigate();
+  const [joinTripId, setJoinTripId] = useState("");
+  const [joinCode, setJoinCode] = useState("");
+
   return (
     <div className="grid gap-8 md:grid-cols-[1.2fr_1fr] md:items-center">
       <section className="space-y-5">
@@ -19,6 +25,21 @@ export function LandingPage() {
           <Link to="/create">
             <Button className="px-6 py-3 text-base">Create a Trip</Button>
           </Link>
+          <Button
+            variant="ghost"
+            className="px-6 py-3 text-base"
+            onClick={() => {
+              const tripId = joinTripId.trim();
+              const code = joinCode.trim();
+              if (!tripId || !code) {
+                return;
+              }
+              navigate(`/trip/${tripId}/join?code=${encodeURIComponent(code)}`);
+            }}
+            disabled={!joinTripId.trim() || !joinCode.trim()}
+          >
+            Join a Trip
+          </Button>
         </div>
       </section>
       <Card className="space-y-3">
@@ -29,6 +50,28 @@ export function LandingPage() {
           <li>Auto-generate 3 trip options with cost and itinerary</li>
           <li>Vote and track transport/accommodation/visa/insurance bookings</li>
         </ul>
+
+        <div className="space-y-2 border-t border-slate-200 pt-3">
+          <h3 className="font-semibold">Join an existing trip</h3>
+          <Input
+            value={joinTripId}
+            onChange={(event) => setJoinTripId(event.target.value)}
+            placeholder="Trip ID"
+          />
+          <Input
+            value={joinCode}
+            onChange={(event) => setJoinCode(event.target.value)}
+            placeholder="Share code"
+          />
+          <Button
+            variant="ghost"
+            className="w-full"
+            onClick={() => navigate(`/trip/${joinTripId.trim()}/join?code=${encodeURIComponent(joinCode.trim())}`)}
+            disabled={!joinTripId.trim() || !joinCode.trim()}
+          >
+            Continue to join
+          </Button>
+        </div>
       </Card>
     </div>
   );

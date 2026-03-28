@@ -144,7 +144,7 @@ export async function generateTripOptionsWithLLM(constraints: AggregatedConstrai
   }
 
   const langchainModuleName = "@langchain/openai";
-  const { ChatOpenAI } = (await import(langchainModuleName)) as {
+  const { ChatOpenAI } = (await import(/* @vite-ignore */ langchainModuleName)) as {
     ChatOpenAI: new (args: Record<string, unknown>) => {
       withStructuredOutput: (schema: typeof plannerSchema) => {
         invoke: (input: string) => Promise<z.infer<typeof plannerSchema>>;

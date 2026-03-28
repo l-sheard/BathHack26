@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Badge } from "../components/Badge";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -8,9 +8,44 @@ import { useTripOptions } from "../hooks/queries";
 import { currency } from "../lib/utils";
 import { fetchDestinationImages } from "../services/imageService";
 
+function formatDurationHours(value: unknown) {
+  const hours = Number(value);
+  if (!Number.isFinite(hours) || hours <= 0) {
+    return "-";
+  }
+
+  const wholeHours = Math.floor(hours);
+  const mins = Math.round((hours - wholeHours) * 60);
+
+  if (mins <= 0) {
+    return `${wholeHours}h`;
+  }
+  if (wholeHours <= 0) {
+    return `${mins}m`;
+  }
+
+  return `${wholeHours}h ${mins}m`;
+}
+
+function extractAirline(details: unknown) {
+  if (typeof details !== "string") {
+    return "Unknown airline";
+  }
+
+  const normalized = details.replace(/\s*\(from.*\)$/i, "").trim();
+  const match = normalized.match(/^Flight\s+(.+?)\s+[A-Z]{3}\s*->/i);
+  if (match?.[1]) {
+    return match[1].trim();
+  }
+
+  return "Unknown airline";
+}
+
 export function TripOptionDetailPage() {
   const { tripId = "", optionId = "" } = useParams();
+  const [search] = useSearchParams();
   const navigate = useNavigate();
+  const participantId = search.get("participantId") ?? undefined;
   const options = useTripOptions(tripId);
   const option = options.data?.find((item: any) => item.id === optionId);
   const accommodation = option?.accommodation_options?.[0];
@@ -56,6 +91,10 @@ export function TripOptionDetailPage() {
   }
 
   const resolvedImageUrl = option.image_url ?? fallbackImage;
+  const allTransportPlans = option.transport_plans ?? [];
+  const transportPlans = participantId
+    ? allTransportPlans.filter((plan: any) => plan.participant_id === participantId)
+    : allTransportPlans.slice(0, 1);
 
   return (
     <div className="space-y-6">
@@ -65,8 +104,10 @@ export function TripOptionDetailPage() {
       >
         <Card className="space-y-3">
           <div className="flex gap-2">
-            <Button onClick={() => navigate(`/trip/${tripId}/options`)}>Back to options</Button>
-            <Button variant="ghost" onClick={() => navigate(`/trip/${tripId}/dashboard`)}>
+            <Button onClick={() => navigate(`/trip/${tripId}/options${participantId ? `?participantId=${participantId}` : ""}`)}>
+              Back to options
+            </Button>
+            <Button variant="ghost" onClick={() => navigate(`/trip/${tripId}/dashboard${participantId ? `?participantId=${participantId}` : ""}`)}>
               Go to dashboard
             </Button>
           </div>
@@ -109,6 +150,39 @@ export function TripOptionDetailPage() {
             <div>{accommodation?.name ?? "TBD"}</div>
             <div className="text-xs text-slate-500">{accommodation?.description}</div>
           </div>
+        </div>
+
+        <div>
+          <h4 className="mb-2 text-sm font-semibold">Your transport plan</h4>
+          {transportPlans.length > 0 ? (
+            <div className="space-y-2">
+              {transportPlans.map((plan: any, index: number) => (
+                <div key={plan.id ?? `${plan.participant_id}-${index}`} className="rounded-lg border border-slate-200 p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="text-sm text-slate-700">
+                      <div className="font-semibold">{plan.mode === "plane" ? "Flight" : "Train"} from {plan.departure}</div>
+                      <div className="text-xs text-slate-500">{plan.details}</div>
+                      {plan.mode === "plane" ? (
+                        <>
+                          <div className="mt-1 text-xs text-slate-600">Airline: {extractAirline(plan.details)}</div>
+                          <div className="text-xs text-slate-600">Flight time: {formatDurationHours(plan.duration_hours)}</div>
+                        </>
+                      ) : (
+                        <div className="mt-1 text-xs text-slate-600">Travel time: {formatDurationHours(plan.duration_hours)}</div>
+                      )}
+                    </div>
+                    <div className="text-right text-sm">
+                      <div className="font-semibold text-ink">{currency(plan.estimated_cost ?? 0)}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">
+              No transport plan was found for your participant in this option.
+            </p>
+          )}
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
