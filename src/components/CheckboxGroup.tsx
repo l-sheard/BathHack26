@@ -20,9 +20,17 @@ export function CheckboxGroup({ label, options, selected, onChange }: Props) {
         {options.map((option) => {
           const checked = selected.includes(option.value);
           return (
-            <label key={option.value} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2 text-sm">
+            <label
+              key={option.value}
+              className={`flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm transition ${
+                checked
+                  ? "border-ocean/40 bg-ocean/10 text-ocean"
+                  : "border-white/15 bg-white/5 text-slate-300 hover:border-ocean/30 hover:bg-ocean/10"
+              }`}
+            >
               <input
                 type="checkbox"
+                className="accent-ocean"
                 checked={checked}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => {
                   if (event.target.checked) {

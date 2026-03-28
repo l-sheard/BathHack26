@@ -43,9 +43,13 @@ export function BookingChecklist({ value, onSave, loading }: Props) {
       <h3 className="font-display text-lg font-bold">Booking Progress</h3>
       <div className="space-y-2">
         {fields.map((field) => (
-          <label key={field} className="flex items-center gap-3 rounded-lg border border-slate-200 p-2 text-sm">
+          <label
+            key={field}
+            className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/5 p-3 text-sm text-slate-300"
+          >
             <input
               type="checkbox"
+              className="accent-ocean"
               checked={state[field]}
               onChange={(event) => setState({ ...state, [field]: event.target.checked })}
             />

@@ -5,10 +5,10 @@ export function Badge({ children, tone = "slate" }: { children: ReactNode; tone?
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
-        tone === "slate" && "bg-slate-100 text-slate-700",
-        tone === "green" && "bg-emerald-100 text-emerald-700",
-        tone === "orange" && "bg-orange-100 text-orange-700"
+        "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
+        tone === "slate" && "border border-white/15 bg-white/10 text-slate-300",
+        tone === "green" && "border border-emerald-400/30 bg-emerald-500/15 text-emerald-300",
+        tone === "orange" && "border border-orange-400/30 bg-orange-500/15 text-orange-300"
       )}
     >
       {children}

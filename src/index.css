@@ -1,20 +1,123 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {
   margin: 0;
-  font-family: Manrope, ui-sans-serif, system-ui;
+  position: relative;
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui;
+  color: #f3f4f6;
   background:
-    radial-gradient(circle at 20% 0%, rgba(16, 185, 129, 0.2), transparent 40%),
-    radial-gradient(circle at 100% 20%, rgba(249, 115, 22, 0.2), transparent 35%),
-    #f8f5ee;
+    radial-gradient(88% 74% at 72% 46%, rgba(147, 51, 234, 0.58), rgba(76, 29, 149, 0.26) 44%, rgba(0, 0, 0, 0) 72%),
+    radial-gradient(60% 52% at 74% 84%, rgba(192, 38, 211, 0.3), transparent 74%),
+    radial-gradient(50% 54% at 22% 16%, rgba(168, 85, 247, 0.22), transparent 70%),
+    radial-gradient(40% 44% at 20% 15%, rgba(255, 255, 255, 0.05), transparent 78%),
+    radial-gradient(36% 40% at 80% 22%, rgba(255, 255, 255, 0.04), transparent 80%),
+    linear-gradient(180deg, #000000 0%, #050505 100%);
+  background-size: auto, auto, auto, auto, auto, auto;
+  background-attachment: fixed;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: -8% -12% auto auto;
+  width: min(76vw, 1050px);
+  height: min(72vh, 760px);
+  pointer-events: none;
+  background: radial-gradient(circle at center, rgba(196, 70, 255, 0.46) 0%, rgba(119, 31, 204, 0.24) 42%, rgba(0, 0, 0, 0) 76%);
+  filter: blur(20px);
+  opacity: 0.9;
+  z-index: 0;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 88px 88px;
+  background-position: center top;
+  opacity: 0.18;
+  mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 1) 35%, rgba(0, 0, 0, 0.2) 100%);
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
 }
 
 * {
   box-sizing: border-box;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(115, 115, 115, 0.55);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(163, 163, 163, 0.7);
+}
+
+::selection {
+  color: #ffffff;
+  background: rgba(64, 64, 64, 0.85);
+}
+
+.bg-white,
+.bg-white\/70,
+.bg-white\/72,
+.bg-white\/78,
+.bg-white\/80,
+.bg-white\/90 {
+  background-color: rgba(14, 14, 14, 0.92) !important;
+}
+
+.bg-slate-50,
+.bg-slate-100,
+.bg-slate-200,
+.bg-slate-300 {
+  background-color: rgba(23, 23, 23, 0.9) !important;
+}
+
+.border-slate-100,
+.border-slate-200,
+.border-slate-300 {
+  border-color: rgba(82, 82, 82, 0.58) !important;
+}
+
+.text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+.text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
+.text-slate-600 {
+  color: #e2e8f0 !important;
+}
+
+.text-slate-700 {
+  color: #f1f5f9 !important;
+}
+
+.hover\:text-slate-700:hover {
+  color: #ffffff !important;
 }
