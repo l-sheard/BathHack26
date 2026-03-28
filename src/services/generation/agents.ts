@@ -1,7 +1,7 @@
 import { ACCOMMODATIONS, ACTIVITIES, DESTINATIONS, RESTAURANTS } from "../../data/mockCatalog";
 import { supabase } from "../../lib/supabase";
 import { fetchDestinationImage } from "../imageService";
-import { fetchFlightQuote } from "./amadeusService";
+import { fetchFlightQuote, fetchMockFlightQuoteWithLLM, type FlightQuote } from "./amadeusService";
 import type { AggregatedConstraints, GeneratedOption, TripPreferenceTag } from "../../types/models";
 import { generateTripOptionsWithLLM, isAiPlannerEnabled } from "./llmPlanner";
 
@@ -305,7 +305,8 @@ function resolveDestinationCandidate(destinationName: string): DestinationCandid
 async function generateTransportPlanWithFlightQuotes(
   destination: DestinationCandidate,
   constraints: AggregatedConstraints,
-  departureDate: string
+  departureDate: string,
+  useLiveFlights: boolean
 ) {
   const destinationIata = DESTINATION_AIRPORT_IATA[destination.destination];
 
@@ -330,11 +331,20 @@ async function generateTransportPlanWithFlightQuotes(
       if (mode === "plane" && destinationIata) {
         const originIata = extractIataCode(participant.departure);
         if (originIata) {
-          const quote = await fetchFlightQuote({
-            originIata,
-            destinationIata,
-            departureDate
-          });
+          let quote: FlightQuote | null = null;
+          if (useLiveFlights) {
+            quote = await fetchFlightQuote({
+              originIata,
+              destinationIata,
+              departureDate
+            });
+          } else {
+            quote = await fetchMockFlightQuoteWithLLM({
+              originIata,
+              destinationIata,
+              departureDate
+            });
+          }
 
           if (quote) {
             return {
@@ -342,7 +352,7 @@ async function generateTransportPlanWithFlightQuotes(
               mode,
               departure: participant.departure,
               durationHours: Math.min(24, quote.durationHours),
-              details: `${quote.details} (from ${participant.departure})`,
+              details: `${quote.details} (from ${participant.departure})${quote.source === "mock-llm" ? " [Estimated]" : ""}`,
               estimatedCost: quote.estimatedCostGbp,
               emissionsLevel: (destination.ecoScore > 75 ? "medium" : "high") as "low" | "medium" | "high"
             };
@@ -370,7 +380,12 @@ async function enrichOptionsWithLiveTransport(options: GeneratedOption[], constr
   return Promise.all(
     options.map(async (option) => {
       const destination = resolveDestinationCandidate(option.destination);
-      const transportPlans = await generateTransportPlanWithFlightQuotes(destination, constraints, option.startDate);
+      const transportPlans = await generateTransportPlanWithFlightQuotes(
+        destination,
+        constraints,
+        option.startDate,
+        USE_SERPAPI_LIVE_FLIGHTS
+      );
       const transportTotal = transportPlans.reduce((sum, plan) => sum + plan.estimatedCost, 0);
       const staticCosts =
         option.budgetBreakdown.accommodation + option.budgetBreakdown.food + option.budgetBreakdown.activities;
@@ -665,6 +680,11 @@ export async function generateTripOptions(
   tripId: string,
   onProgress?: (stepId: string, status: "in-progress" | "complete" | "error", message?: string) => void
 ) {
+  console.info("[generation] Starting trip option generation", {
+    tripId,
+    useLiveFlights: USE_SERPAPI_LIVE_FLIGHTS
+  });
+
   const updateProgress = (stepId: string, status: "in-progress" | "complete" | "error", message?: string) => {
     onProgress?.(stepId, status, message);
   };
@@ -681,9 +701,11 @@ export async function generateTripOptions(
   let options: GeneratedOption[];
 
   if (isAiPlannerEnabled()) {
+    console.info("[generation] AI planner enabled, attempting LLM generation");
     try {
       await new Promise((resolve) => setTimeout(resolve, 1200));
       options = await generateTripOptionsWithLLM(constraints);
+      console.info("[generation] LLM generation succeeded");
       updateProgress("select-destination", "complete");
 
       updateProgress("plan-transport", "in-progress");
@@ -703,6 +725,7 @@ export async function generateTripOptions(
       updateProgress("check-visas", "complete");
     } catch (error) {
       console.warn("AI planner failed; falling back to deterministic planner:", error);
+      console.info("[generation] Using deterministic fallback after AI failure");
       updateProgress("select-destination", "error", String(error));
       await new Promise((resolve) => setTimeout(resolve, 500));
       updateProgress("select-destination", "in-progress");
@@ -714,6 +737,7 @@ export async function generateTripOptions(
       updateProgress("check-visas", "complete");
     }
   } else {
+    console.info("[generation] AI planner disabled, using deterministic generation");
     await new Promise((resolve) => setTimeout(resolve, 1200));
     options = generateOptionSetFromConstraints(constraints);
     updateProgress("select-destination", "complete");
@@ -725,8 +749,11 @@ export async function generateTripOptions(
 
   options = enforceDistinctOptionDestinations(options, constraints);
   if (USE_SERPAPI_LIVE_FLIGHTS) {
-    options = await enrichOptionsWithLiveTransport(options, constraints);
+    console.info("[generation] Enriching transport with live SerpApi quotes");
+  } else {
+    console.info("[generation] Live flight quotes disabled; generating LLM-estimated flight quotes");
   }
+  options = await enrichOptionsWithLiveTransport(options, constraints);
 
   const { data: existingOptions } = await supabase.from("trip_options").select("id").eq("trip_id", tripId);
   const existingIds = (existingOptions ?? []).map((row: { id: string }) => row.id);
@@ -867,5 +894,9 @@ export async function generateTripOptions(
   }
 
   updateProgress("save-results", "complete");
+  console.info("[generation] Finished generation and saved options", {
+    tripId,
+    optionCount: options.length
+  });
   return options;
 }

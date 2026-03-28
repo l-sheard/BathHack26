@@ -4,10 +4,11 @@ type FlightQuoteInput = {
   departureDate: string;
 };
 
-type FlightQuote = {
+export type FlightQuote = {
   estimatedCostGbp: number;
   durationHours: number;
   details: string;
+  source?: "live" | "mock-llm";
 };
 
 type SerpApiFlight = {
@@ -64,6 +65,97 @@ function toGbpAmount(value?: number | string) {
   return Math.round(amount);
 }
 
+function buildFallbackQuote(input: FlightQuoteInput): FlightQuote {
+  return {
+    estimatedCostGbp: 160,
+    durationHours: 4,
+    details: `Flight SkyJet ${input.originIata} -> ${input.destinationIata}`,
+    source: "mock-llm"
+  };
+}
+
+type MockQuoteResponse = {
+  airline?: string;
+  flightNumber?: string;
+  durationHours?: number;
+  estimatedCostGbp?: number;
+};
+
+export async function fetchMockFlightQuoteWithLLM(input: FlightQuoteInput): Promise<FlightQuote | null> {
+  try {
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
+    const model = (import.meta.env.VITE_OPENAI_MODEL as string | undefined) ?? "gpt-4o-mini";
+    if (!apiKey) {
+      return null;
+    }
+
+    const prompt = [
+      "Generate one realistic but simulated one-way flight quote in JSON.",
+      "Output ONLY valid JSON and no markdown.",
+      "Schema:",
+      '{"airline":"string","flightNumber":"string","durationHours":number,"estimatedCostGbp":number}',
+      `Route: ${input.originIata} -> ${input.destinationIata}`,
+      `Departure date: ${input.departureDate}`,
+      "Constraints:",
+      "- durationHours between 1.0 and 12.0",
+      "- estimatedCostGbp between 60 and 500",
+      "- airline should look like a real carrier name"
+    ].join("\n");
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.5,
+        messages: [
+          {
+            role: "system",
+            content: "You output concise valid JSON only."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      return buildFallbackQuote(input);
+    }
+
+    const data = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+
+    const content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) {
+      return buildFallbackQuote(input);
+    }
+
+    const parsed = JSON.parse(content) as MockQuoteResponse;
+    const airline = parsed.airline?.trim() || "MockAir";
+    const flightNumber = parsed.flightNumber?.trim() || "MA101";
+    const durationHours = Number(parsed.durationHours);
+    const estimatedCostGbp = Number(parsed.estimatedCostGbp);
+
+    return {
+      estimatedCostGbp:
+        Number.isFinite(estimatedCostGbp) && estimatedCostGbp > 0 ? Math.round(estimatedCostGbp) : 160,
+      durationHours: Number.isFinite(durationHours) && durationHours > 0 ? Math.round(durationHours * 10) / 10 : 4,
+      details: `Flight ${airline} ${flightNumber} ${input.originIata} -> ${input.destinationIata}`,
+      source: "mock-llm"
+    };
+  } catch (error) {
+    console.warn("LLM mock flight quote failed; using static mock fallback:", error);
+    return buildFallbackQuote(input);
+  }
+}
+
 export async function fetchFlightQuote(input: FlightQuoteInput): Promise<FlightQuote | null> {
   try {
     const apiKey = import.meta.env.VITE_SERPAPI_API_KEY as string | undefined;
@@ -108,7 +200,8 @@ export async function fetchFlightQuote(input: FlightQuoteInput): Promise<FlightQ
     return {
       estimatedCostGbp: toGbpAmount(offer.price),
       durationHours: toDurationHours(offer.total_duration),
-      details: `Flight ${flightLabel} ${firstFlight?.departure_airport?.id ?? input.originIata} -> ${lastFlight?.arrival_airport?.id ?? input.destinationIata}`
+      details: `Flight ${flightLabel} ${firstFlight?.departure_airport?.id ?? input.originIata} -> ${lastFlight?.arrival_airport?.id ?? input.destinationIata}`,
+      source: "live"
     };
   } catch (error) {
     console.warn("Live flight lookup failed; using fallback estimate:", error);

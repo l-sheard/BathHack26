@@ -32,13 +32,25 @@ function extractAirline(details: unknown) {
     return "Unknown airline";
   }
 
-  const normalized = details.replace(/\s*\(from.*\)$/i, "").trim();
+  const normalized = stripQuoteTag(details).replace(/\s*\(from.*\)$/i, "").trim();
   const match = normalized.match(/^Flight\s+(.+?)\s+[A-Z]{3}\s*->/i);
   if (match?.[1]) {
     return match[1].trim();
   }
 
   return "Unknown airline";
+}
+
+function stripQuoteTag(details: unknown) {
+  if (typeof details !== "string") {
+    return "";
+  }
+
+  return details.replace(/\s*\[(?:Estimated|Mock quote)\]\s*/gi, " ").replace(/\s{2,}/g, " ").trim();
+}
+
+function isEstimatedQuote(details: unknown) {
+  return typeof details === "string" && /\[(?:Estimated|Mock quote)\]/i.test(details);
 }
 
 export function TripOptionDetailPage() {
@@ -157,24 +169,43 @@ export function TripOptionDetailPage() {
           {transportPlans.length > 0 ? (
             <div className="space-y-2">
               {transportPlans.map((plan: any, index: number) => (
-                <div key={plan.id ?? `${plan.participant_id}-${index}`} className="rounded-lg border border-slate-200 p-3">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="text-sm text-slate-700">
-                      <div className="font-semibold">{plan.mode === "plane" ? "Flight" : "Train"} from {plan.departure}</div>
-                      <div className="text-xs text-slate-500">{plan.details}</div>
-                      {plan.mode === "plane" ? (
-                        <>
-                          <div className="mt-1 text-xs text-slate-600">Airline: {extractAirline(plan.details)}</div>
-                          <div className="text-xs text-slate-600">Flight time: {formatDurationHours(plan.duration_hours)}</div>
-                        </>
-                      ) : (
-                        <div className="mt-1 text-xs text-slate-600">Travel time: {formatDurationHours(plan.duration_hours)}</div>
-                      )}
+                <div key={plan.id ?? `${plan.participant_id}-${index}`} className="rounded-xl border border-sky-200 bg-sky-50 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+                        {plan.mode === "plane" ? "Flight quote" : "Rail quote"}
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-ink">{plan.departure} {"->"} {option.destination}</div>
                     </div>
-                    <div className="text-right text-sm">
-                      <div className="font-semibold text-ink">{currency(plan.estimated_cost ?? 0)}</div>
+                    <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-sky-700">
+                      {plan.mode === "plane"
+                        ? isEstimatedQuote(plan.details)
+                          ? "Estimated quote"
+                          : "Live quote"
+                        : "Estimated"}
                     </div>
                   </div>
+
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-lg bg-white p-3">
+                      <div className="text-[11px] uppercase tracking-wide text-slate-500">Airline</div>
+                      <div className="mt-1 text-sm font-semibold text-ink">
+                        {plan.mode === "plane" ? extractAirline(plan.details) : "Rail operator"}
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-white p-3">
+                      <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                        {plan.mode === "plane" ? "Flight time" : "Travel time"}
+                    </div>
+                      <div className="mt-1 text-sm font-semibold text-ink">{formatDurationHours(plan.duration_hours)}</div>
+                    </div>
+                    <div className="rounded-lg bg-white p-3 text-right">
+                      <div className="text-[11px] uppercase tracking-wide text-slate-500">Price</div>
+                      <div className="mt-1 text-base font-bold text-ink">{currency(plan.estimated_cost ?? 0)}</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 text-xs text-slate-500">{stripQuoteTag(plan.details)}</div>
                 </div>
               ))}
             </div>

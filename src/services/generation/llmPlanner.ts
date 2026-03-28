@@ -143,8 +143,7 @@ export async function generateTripOptionsWithLLM(constraints: AggregatedConstrai
     throw new Error("Missing VITE_OPENAI_API_KEY for AI planner.");
   }
 
-  const langchainModuleName = "@langchain/openai";
-  const { ChatOpenAI } = (await import(/* @vite-ignore */ langchainModuleName)) as {
+  const { ChatOpenAI } = (await import("@langchain/openai")) as {
     ChatOpenAI: new (args: Record<string, unknown>) => {
       withStructuredOutput: (schema: typeof plannerSchema) => {
         invoke: (input: string) => Promise<z.infer<typeof plannerSchema>>;

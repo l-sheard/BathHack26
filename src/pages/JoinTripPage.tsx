@@ -35,7 +35,7 @@ export function JoinTripPage() {
         disabled={!name.trim() || join.isPending || !code}
         onClick={async () => {
           const participant = await join.mutateAsync({ tripId, name, email, shareCode: code });
-          navigate(`/trip/${tripId}/preferences/${participant.id}`);
+          navigate(`/trip/${tripId}/dashboard?participantId=${participant.id}`);
         }}
       >
         {join.isPending ? "Joining..." : "Join trip"}
