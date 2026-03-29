@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { ThemeToggle } from "./ThemeToggle";
 import { useUser } from "../contexts/UserContext";
+import { signOut } from "../lib/signOut";
 
 export function Header() {
   const { user, loading } = useUser();
@@ -28,7 +29,7 @@ export function Header() {
           </Link>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <nav className="text-sm font-semibold text-slate-500 flex gap-2">
+            <nav className="text-sm font-semibold text-slate-500 flex gap-2 items-center">
               {!loading && !user && (
                 <>
                   <Link
@@ -46,18 +47,30 @@ export function Header() {
                 </>
               )}
               {!loading && user && (
-                <div
-                  title={user.email}
-                  className="rounded-full w-9 h-9 flex items-center justify-center font-bold text-lg cursor-pointer transition-colors bg-slate-700 text-white dark:bg-slate-700 dark:text-white bg-white text-slate-700"
-                  style={{
-                    background: 'var(--profile-bg, #fff)',
-                    color: 'var(--profile-fg, #1A1625)',
-                  }}
-                  onClick={() => navigate('/dashboard')}
-                  data-theme-profile
-                >
-                  <span role="img" aria-label="profile">👤</span>
-                </div>
+                <>
+                  <div
+                    title={user.email}
+                    className="rounded-full w-9 h-9 flex items-center justify-center font-bold text-lg cursor-pointer transition-colors bg-slate-700 text-white dark:bg-slate-700 dark:text-white bg-white text-slate-700"
+                    style={{
+                      background: 'var(--profile-bg, #fff)',
+                      color: 'var(--profile-fg, #1A1625)',
+                    }}
+                    onClick={() => navigate('/dashboard')}
+                    data-theme-profile
+                  >
+                    <span role="img" aria-label="profile">👤</span>
+                  </div>
+                  <button
+                    className="ml-2 px-3 py-1.5 rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 font-semibold transition"
+                    onClick={async () => {
+                      await signOut();
+                      navigate("/");
+                    }}
+                    title="Logout"
+                  >
+                    Logout
+                  </button>
+                </>
               )}
             </nav>
           </div>
