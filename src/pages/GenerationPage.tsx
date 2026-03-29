@@ -143,13 +143,15 @@ export function GenerationPage() {
   }, [progressSteps, currentStep]);
 
   return (
-    <div className="min-h-screen bg-cream text-ink py-8">
-      <div className="mx-auto w-full max-w-4xl px-4">
+    <div className="relative min-h-screen w-full overflow-hidden">
+      {/* Big purple glow background across the whole page */}
+      <div className="pointer-events-none fixed z-0 h-[900px] w-[900px] right-[-300px] bottom-[-300px] rounded-full bg-[radial-gradient(circle,rgba(168,85,247,0.32)_0%,rgba(124,58,237,0.18)_60%,rgba(59,130,246,0.12)_80%,transparent_100%)] blur-[140px]" />
+      <div className="relative mx-auto max-w-2xl py-12">
         <Section
           title="Planning your group trip"
           subtitle="AI agents are working together to create the perfect options for your group"
         >
-          <Card className="space-y-8">
+          <Card className="space-y-8 bg-white/15 backdrop-blur-md shadow-lg">
             <div className="relative max-h-[62vh] overflow-y-auto pr-2 snap-y snap-mandatory pl-6">
               <div className="absolute left-[11px] top-2 bottom-2 w-px bg-slate-200" />
               {progressSteps.map((step, index) => {
@@ -181,7 +183,7 @@ export function GenerationPage() {
                           <h3
                             className={`font-semibold text-lg transition-colors ${
                               isActive
-                                ? "text-ocean"
+                                ? "text-white"
                                 : isComplete
                                   ? "text-emerald-700"
                                   : isError
@@ -213,10 +215,10 @@ export function GenerationPage() {
                                     style={{ animationDelay: "0.4s" }}
                                   />
                                 </div>
-                                <span className="text-sm text-ocean font-medium">Agent thinking...</span>
+                                <span className="text-sm text-white font-medium">Agent thinking...</span>
                               </div>
 
-                              <p className="text-xs text-ocean/90 pl-1">
+                              <p className="text-xs text-slate-300 pl-1">
                                 {STEP_THOUGHT_PROMPTS[step.id]?.[thoughtIndex % Math.max(1, STEP_THOUGHT_PROMPTS[step.id]?.length ?? 1)]}
                               </p>
                             </div>
@@ -243,7 +245,7 @@ export function GenerationPage() {
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
                   <div className="text-sm text-slate-600 mb-1">Progress</div>
-                  <div className="text-2xl font-bold text-ocean">
+                  <div className="text-2xl font-bold text-white">
                     {progressSteps.filter((s) => s.status === "complete").length}/{progressSteps.length}
                   </div>
                 </div>
@@ -261,7 +263,7 @@ export function GenerationPage() {
 
                 <div>
                   <div className="text-sm text-slate-600 mb-1">Status</div>
-                  <div className={`text-base font-semibold ${generateOptions.isSuccess ? "text-emerald-700" : generateOptions.isError ? "text-red-700" : "text-ocean"}`}>
+                  <div className={`text-base font-semibold ${generateOptions.isSuccess ? "text-emerald-700" : generateOptions.isError ? "text-red-700" : "text-white"}`}>
                     {generateOptions.isSuccess ? "Done" : generateOptions.isError ? "Error" : "In progress"}
                   </div>
                 </div>

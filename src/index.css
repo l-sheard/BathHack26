@@ -1,17 +1,81 @@
+[data-theme="light"] .card,
+[data-theme="light"] .card * {
+  background: #fff !important;
+}
+[data-theme="light"] .card,
+[data-theme="light"] .card * {
+  color: #000 !important;
+}
+[data-theme="light"] button[disabled].bg-white\/5,
+[data-theme="light"] button[disabled].border-violet-300\/20 {
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  border-color: #e2e8f0 !important;
+  opacity: 1 !important;
+}
+[data-theme="light"] .card h2,
+[data-theme="light"] .card h3 {
+  color: #000 !important;
+}
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  color: #000 !important;
+  background: #fff !important;
+  border-color: #e2e8f0 !important;
+  -webkit-text-fill-color: #000 !important;
+}
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #000 !important;
+  opacity: 1 !important;
+}
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  color: #000 !important;
+}
+/* Light mode input overrides */
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background: #fff !important;
+  color: #18181b !important;
+  border-color: #e2e8f0 !important;
+}
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Move @import to the very top for Vite/Tailwind compatibility */
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+
 :root {
   color-scheme: dark;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
 }
 
 body {
   margin: 0;
   position: relative;
   font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui;
+}
+
+body,
+[data-theme="dark"] body {
   color: #f3f4f6;
   background:
     radial-gradient(88% 74% at 72% 46%, rgba(147, 51, 234, 0.58), rgba(76, 29, 149, 0.26) 44%, rgba(0, 0, 0, 0) 72%),
@@ -19,9 +83,14 @@ body {
     radial-gradient(50% 54% at 22% 16%, rgba(168, 85, 247, 0.22), transparent 70%),
     radial-gradient(40% 44% at 20% 15%, rgba(255, 255, 255, 0.05), transparent 78%),
     radial-gradient(36% 40% at 80% 22%, rgba(255, 255, 255, 0.04), transparent 80%),
-    linear-gradient(180deg, #000000 0%, #050505 100%);
+    linear-gradient(180deg, #0a1836 0%, #101e3a 100%);
   background-size: auto, auto, auto, auto, auto, auto;
   background-attachment: fixed;
+}
+
+[data-theme="light"] body {
+  color: #18181b;
+  background: #fff !important;
 }
 
 body::after {
@@ -80,6 +149,8 @@ body::before {
   background: rgba(64, 64, 64, 0.85);
 }
 
+
+/* Dark mode overrides (default) */
 .bg-white,
 .bg-white\/70,
 .bg-white\/72,
@@ -88,34 +159,61 @@ body::before {
 .bg-white\/90 {
   background-color: rgba(14, 14, 14, 0.92) !important;
 }
-
 .bg-slate-50,
 .bg-slate-100,
 .bg-slate-200,
 .bg-slate-300 {
   background-color: rgba(23, 23, 23, 0.9) !important;
 }
-
 .border-slate-100,
 .border-slate-200,
 .border-slate-300 {
   border-color: rgba(82, 82, 82, 0.58) !important;
 }
-
 .text-slate-400 {
   color: #94a3b8 !important;
 }
-
 .text-slate-500 {
   color: #cbd5e1 !important;
 }
-
 .text-slate-600 {
   color: #e2e8f0 !important;
 }
-
 .text-slate-700 {
   color: #f1f5f9 !important;
+}
+
+/* Light mode overrides */
+[data-theme="light"] .bg-white,
+[data-theme="light"] .bg-white\/70,
+[data-theme="light"] .bg-white\/72,
+[data-theme="light"] .bg-white\/78,
+[data-theme="light"] .bg-white\/80,
+[data-theme="light"] .bg-white\/90 {
+  background-color: #fff !important;
+}
+[data-theme="light"] .bg-slate-50,
+[data-theme="light"] .bg-slate-100,
+[data-theme="light"] .bg-slate-200,
+[data-theme="light"] .bg-slate-300 {
+  background-color: #f1f5f9 !important;
+}
+[data-theme="light"] .border-slate-100,
+[data-theme="light"] .border-slate-200,
+[data-theme="light"] .border-slate-300 {
+  border-color: #e2e8f0 !important;
+}
+[data-theme="light"] .text-slate-400 {
+  color: #94a3b8 !important;
+}
+[data-theme="light"] .text-slate-500 {
+  color: #64748b !important;
+}
+[data-theme="light"] .text-slate-600 {
+  color: #475569 !important;
+}
+[data-theme="light"] .text-slate-700 {
+  color: #334155 !important;
 }
 
 .hover\:text-slate-700:hover {

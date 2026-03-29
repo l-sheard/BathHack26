@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useUser } from "../contexts/UserContext";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -6,6 +7,7 @@ import { Input } from "../components/Input";
 import { useJoinTrip, useTrip } from "../hooks/queries";
 
 export function JoinTripPage() {
+  const { user } = useUser();
   const { tripId = "" } = useParams();
   const [search] = useSearchParams();
   const code = search.get("code") ?? "";
@@ -34,7 +36,13 @@ export function JoinTripPage() {
       <Button
         disabled={!name.trim() || join.isPending || !code}
         onClick={async () => {
-          const participant = await join.mutateAsync({ tripId, name, email, shareCode: code });
+          const participant = await join.mutateAsync({
+            tripId,
+            name,
+            email,
+            shareCode: code,
+            user_id: user?.id
+          });
           navigate(`/trip/${tripId}/dashboard?participantId=${participant.id}`);
         }}
       >

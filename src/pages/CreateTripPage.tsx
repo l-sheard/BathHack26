@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useUser } from "../contexts/UserContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -6,6 +7,7 @@ import { Input } from "../components/Input";
 import { useCreateTrip, useJoinTrip } from "../hooks/queries";
 
 export function CreateTripPage() {
+  const { user } = useUser();
   const [creatorName, setCreatorName] = useState("");
   const [creatorEmail, setCreatorEmail] = useState("");
   const [name, setName] = useState("");
@@ -31,14 +33,21 @@ export function CreateTripPage() {
           <Input value={creatorName} onChange={(event) => setCreatorName(event.target.value)} placeholder="Alex" />
         </label>
 
-        <label className="block space-y-1">
-          <span className="text-sm font-semibold">Your email (optional)</span>
-          <Input
-            value={creatorEmail}
-            onChange={(event) => setCreatorEmail(event.target.value)}
-            placeholder="alex@email.com"
-          />
-        </label>
+        {user ? (
+          <label className="block space-y-1">
+            <span className="text-sm font-semibold">Your email</span>
+            <Input value={user.email} readOnly disabled className="bg-slate-100 text-slate-500 cursor-not-allowed" />
+          </label>
+        ) : (
+          <label className="block space-y-1">
+            <span className="text-sm font-semibold">Your email (optional)</span>
+            <Input
+              value={creatorEmail}
+              onChange={(event) => setCreatorEmail(event.target.value)}
+              placeholder="alex@email.com"
+            />
+          </label>
+        )}
       </div>
 
       <label className="block space-y-1">
@@ -54,16 +63,22 @@ export function CreateTripPage() {
       <Button
         disabled={!name.trim() || !creatorName.trim() || createTrip.isPending || joinTrip.isPending}
         onClick={async () => {
+          if (!user) {
+            alert("You must be logged in to create a trip.");
+            return;
+          }
           const trip = await createTrip.mutateAsync({
             name,
-            description
+            description,
+            user_id: user.id
           });
 
           const participant = await joinTrip.mutateAsync({
             tripId: trip.id,
             name: creatorName,
-            email: creatorEmail,
-            shareCode: trip.share_code
+            email: user ? user.email : creatorEmail,
+            shareCode: trip.share_code,
+            user_id: user.id
           });
 
           navigate(`/trip/${trip.id}/dashboard?participantId=${participant.id}`);

@@ -71,8 +71,8 @@ export function useCreateTrip() {
 
 export function useJoinTrip() {
   return useMutation({
-    mutationFn: ({ tripId, name, email, shareCode }: { tripId: string; name: string; email?: string; shareCode: string }) =>
-      joinTrip(tripId, { name, email, shareCode })
+    mutationFn: ({ tripId, name, email, shareCode, user_id }: { tripId: string; name: string; email?: string; shareCode: string; user_id?: string }) =>
+      joinTrip(tripId, { name, email, shareCode, user_id })
   });
 }
 

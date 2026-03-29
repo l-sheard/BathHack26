@@ -160,13 +160,13 @@ export function TripOptionDetailPage() {
         </Card>
       </Section>
 
-      <Card className="space-y-6 bg-white">
+      <Card className="space-y-6 bg-gradient-to-br from-violet-600/30 to-fuchsia-500/10 border-violet-400/40 shadow-xl backdrop-blur-lg">
         {resolvedImageUrl && (
-          <div className="relative h-72 w-full overflow-hidden rounded-lg bg-slate-200">
+          <div className="relative h-72 w-full overflow-hidden rounded-2xl">
             <img
               src={resolvedImageUrl}
               alt={option.destination}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover rounded-2xl"
             />
           </div>
         )}
@@ -186,19 +186,19 @@ export function TripOptionDetailPage() {
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-lg bg-slate-50 p-3 text-sm">
-            <div className="font-semibold">Estimated cost</div>
-            <div>Total: {currency(option.estimated_total)}</div>
-            <div>Per person: {currency(option.estimated_per_person)}</div>
+          <div className="rounded-lg bg-white/10 backdrop-blur-md p-3 text-sm border border-violet-300/30">
+            <div className="font-semibold text-white">Estimated cost</div>
+            <div className="text-white">Total: {currency(option.estimated_total)}</div>
+            <div className="text-white">Per person: {currency(option.estimated_per_person)}</div>
           </div>
-          <div className="rounded-lg bg-slate-50 p-3 text-sm">
-            <div className="font-semibold">Accommodation</div>
-            <div>{accommodation?.name ?? "TBD"}</div>
-            <div className="text-xs text-slate-500">{accommodation?.description}</div>
-            <div className="mt-2 text-xs text-slate-600">Price: {currency(accommodation?.nightly_cost ?? 0)} / night</div>
-            <div className="text-xs text-slate-600">Beds: {accommodationMeta.numBeds ?? "TBD"}</div>
-            <div className="text-xs text-slate-600">Location: {accommodationMeta.location ?? "Central area"}</div>
-            <div className="mt-1 text-xs text-slate-600">
+          <div className="rounded-lg bg-white/10 backdrop-blur-md p-3 text-sm border border-violet-300/30">
+            <div className="font-semibold text-white">Accommodation</div>
+            <div className="text-white">{accommodation?.name ?? "TBD"}</div>
+            <div className="text-xs text-violet-100">{accommodation?.description}</div>
+            <div className="mt-2 text-xs text-violet-200">Price: {currency(accommodation?.nightly_cost ?? 0)} / night</div>
+            <div className="text-xs text-violet-200">Beds: {accommodationMeta.numBeds ?? "TBD"}</div>
+            <div className="text-xs text-violet-200">Location: {accommodationMeta.location ?? "Central area"}</div>
+            <div className="mt-1 text-xs text-violet-200">
               Facilities: {accommodationMeta.facilities.length > 0 ? accommodationMeta.facilities.join(", ") : "TBD"}
             </div>
           </div>
@@ -209,15 +209,15 @@ export function TripOptionDetailPage() {
           {transportPlans.length > 0 ? (
             <div className="space-y-2">
               {transportPlans.map((plan: any, index: number) => (
-                <div key={plan.id ?? `${plan.participant_id}-${index}`} className="rounded-xl border border-sky-200 bg-sky-50 p-4">
+                <div key={plan.id ?? `${plan.participant_id}-${index}`} className="rounded-xl border border-violet-300/30 bg-white/10 backdrop-blur-md p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <div className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-violet-200">
                         {plan.mode === "plane" ? "Flight quote" : "Rail quote"}
                       </div>
-                      <div className="mt-1 text-sm font-semibold text-ink">{plan.departure} {"->"} {option.destination}</div>
+                      <div className="mt-1 text-sm font-semibold text-white">{plan.departure} {"->"} {option.destination}</div>
                     </div>
-                    <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-sky-700">
+                    <div className="rounded-full bg-violet-500/20 px-3 py-1 text-xs font-semibold text-violet-100">
                       {plan.mode === "plane"
                         ? isEstimatedQuote(plan.details)
                           ? "Estimated quote"
@@ -227,21 +227,21 @@ export function TripOptionDetailPage() {
                   </div>
 
                   <div className="mt-3 grid gap-3 md:grid-cols-3">
-                    <div className="rounded-lg bg-white p-3">
-                      <div className="text-[11px] uppercase tracking-wide text-slate-500">Airline</div>
-                      <div className="mt-1 text-sm font-semibold text-ink">
+                    <div className="rounded-lg bg-white/10 backdrop-blur-md p-3">
+                      <div className="text-[11px] uppercase tracking-wide text-violet-200">Airline</div>
+                      <div className="mt-1 text-sm font-semibold text-white">
                         {plan.mode === "plane" ? extractAirline(plan.details) : "Rail operator"}
                       </div>
                     </div>
-                    <div className="rounded-lg bg-white p-3">
-                      <div className="text-[11px] uppercase tracking-wide text-slate-500">
+                    <div className="rounded-lg bg-white/10 backdrop-blur-md p-3">
+                      <div className="text-[11px] uppercase tracking-wide text-violet-200">
                         {plan.mode === "plane" ? "Flight time" : "Travel time"}
                     </div>
-                      <div className="mt-1 text-sm font-semibold text-ink">{formatDurationHours(plan.duration_hours)}</div>
+                      <div className="mt-1 text-sm font-semibold text-white">{formatDurationHours(plan.duration_hours)}</div>
                     </div>
-                    <div className="rounded-lg bg-white p-3 text-right">
-                      <div className="text-[11px] uppercase tracking-wide text-slate-500">Price</div>
-                      <div className="mt-1 text-base font-bold text-ink">{currency(plan.estimated_cost ?? 0)}</div>
+                    <div className="rounded-lg bg-white/10 backdrop-blur-md p-3 text-right">
+                      <div className="text-[11px] uppercase tracking-wide text-violet-200">Price</div>
+                      <div className="mt-1 text-base font-bold text-white">{currency(plan.estimated_cost ?? 0)}</div>
                     </div>
                   </div>
 

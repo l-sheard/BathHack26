@@ -1,5 +1,8 @@
 import { Link, Route, Routes } from "react-router-dom";
+import { ThemeToggle } from "./components/ThemeToggle";
+// import { signInWithGoogle } from "./lib/signInWithGoogle";
 import { LandingPage } from "./pages/LandingPage";
+import { UserProvider } from "./contexts/UserContext";
 import { CreateTripPage } from "./pages/CreateTripPage";
 import { JoinTripPage } from "./pages/JoinTripPage";
 import { PreferencesPage } from "./pages/PreferencesPage";
@@ -7,27 +10,30 @@ import { TripDashboardPage } from "./pages/TripDashboardPage";
 import { GenerationPage } from "./pages/GenerationPage";
 import { TripOptionsPage } from "./pages/TripOptionsPage";
 import { TripOptionDetailPage } from "./pages/TripOptionDetailPage";
+import { LoginPage } from "./pages/LoginPage";
+import { DashboardPage } from "./pages/DashboardPage";
+import { SignupPage } from "./pages/SignupPage";
+
+
+import { Header } from "./components/Header";
 
 function App() {
   return (
-    <div className="min-h-screen bg-cream text-ink">
-      <header className="sticky top-0 z-20 pt-4">
-        <div className="mx-auto w-full max-w-6xl px-4">
-          <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/75 px-4 py-3 shadow-[0_18px_36px_rgba(0,0,0,0.55)] backdrop-blur-xl">
-          <Link
-            to="/"
-            className="font-display text-xl font-bold tracking-tight text-transparent bg-gradient-to-r from-ocean to-mint bg-clip-text"
+    <UserProvider>
+      <div className="min-h-screen bg-cream text-ink">
+        <Header />
+
+      {/* Back button just below the top banner, only for TripDashboardPage route */}
+      {window.location.pathname.match(/^\/trip\/[^/]+\/dashboard/) && (
+        <div className="relative z-30 w-full">
+          <button
+            className="ml-6 mt-6 rounded-full bg-black/30 px-4 py-1 text-sm text-white hover:bg-black/50 transition"
+            onClick={() => window.history.back()}
           >
-            Group Trip Planner
-          </Link>
-          <nav className="text-sm font-semibold text-slate-500">
-            <Link to="/create" className="rounded-full border border-sky-400/40 bg-sky-500/20 px-3 py-1.5 text-sky-200 transition hover:bg-sky-500/35 hover:text-white">
-              Create Trip
-            </Link>
-          </nav>
-          </div>
+            ← Back
+          </button>
         </div>
-      </header>
+      )}
 
       <main className="mx-auto w-full max-w-6xl px-4 py-8">
         <Routes>
@@ -39,9 +45,13 @@ function App() {
           <Route path="/trip/:tripId/generate" element={<GenerationPage />} />
           <Route path="/trip/:tripId/options" element={<TripOptionsPage />} />
           <Route path="/trip/:tripId/options/:optionId" element={<TripOptionDetailPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
         </Routes>
       </main>
     </div>
+    </UserProvider>
   );
 }
 

@@ -10,6 +10,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl ?? "https://example.supabase.co", supabaseAnonKey ?? "demo-key", {
   auth: {
-    persistSession: false
+    persistSession: true
   }
 });

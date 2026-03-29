@@ -5,6 +5,7 @@ import type { PreferencesFormValues } from "../schemas/preferencesSchema";
 export async function createTrip(input: {
   name: string;
   description?: string;
+  user_id: string;
 }) {
   const shareCode = randomCode(8);
   const { data, error } = await supabase
@@ -14,7 +15,8 @@ export async function createTrip(input: {
       description: input.description,
       start_date: null,
       end_date: null,
-      share_code: shareCode
+      share_code: shareCode,
+      user_id: input.user_id
     })
     .select("*")
     .single();
@@ -35,6 +37,7 @@ export async function joinTrip(
     name: string;
     email?: string;
     shareCode: string;
+    user_id?: string;
   }
 ) {
   const { data: trip, error: tripError } = await supabase
@@ -45,12 +48,14 @@ export async function joinTrip(
   if (tripError) throw new Error("Trip not found");
   if (trip.share_code !== payload.shareCode) throw new Error("Invalid join code");
 
+
   const { data: participant, error } = await supabase
     .from("trip_participants")
     .insert({
       trip_id: tripId,
       name: payload.name,
-      email: payload.email || null
+      email: payload.email || null,
+      user_id: payload.user_id || null
     })
     .select("*")
     .single();

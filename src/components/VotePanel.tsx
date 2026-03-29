@@ -35,7 +35,14 @@ export function VotePanel({ options, votes, participantId, onVote, loading }: Pr
               <Button
                 variant={selected ? "secondary" : "primary"}
                 disabled={loading || !participantId}
-                onClick={() => onVote(option.id)}
+                onClick={() => {
+                  try {
+                    onVote(option.id);
+                  } catch (err) {
+                    // eslint-disable-next-line no-console
+                    console.error("VotePanel vote error:", err);
+                  }
+                }}
               >
                 {selected ? "Selected" : "Vote"}
               </Button>

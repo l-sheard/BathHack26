@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
+// import { signInWithEmail } from "../lib/signInWithEmail";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
 
@@ -8,6 +9,7 @@ export function LandingPage() {
   const navigate = useNavigate();
   const [joinTripId, setJoinTripId] = useState("");
   const [joinCode, setJoinCode] = useState("");
+
 
   return (
     <div className="relative isolate grid gap-8 md:grid-cols-[1.2fr_1fr] md:items-center">
@@ -24,9 +26,7 @@ export function LandingPage() {
       </div>
 
       <section className="relative z-10 space-y-5">
-        <p className="inline-flex rounded-full border border-violet-400/30 bg-violet-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-violet-200">
-          Hackathon MVP
-        </p>
+        {/* Hackathon MVP badge removed */}
         <h1 className="font-display text-4xl font-bold leading-tight md:text-6xl">
           Plan a group trip without the group chat chaos.
         </h1>
@@ -37,9 +37,9 @@ export function LandingPage() {
       <Card className="relative z-10 space-y-3 border-violet-400/35 shadow-[0_25px_60px_rgba(124,58,237,0.35)]">
         <div className="pointer-events-none absolute -top-16 left-1/2 h-44 w-44 -translate-x-1/2 rounded-full bg-violet-500/30 blur-3xl" />
         <h2 className="font-display text-xl font-bold">Create or join a trip</h2>
-        <Link to="/create" className="block">
-          <Button className="w-full">Create a Trip</Button>
-        </Link>
+        <Button className="w-full" onClick={() => navigate('/create')}>
+          Create Trip
+        </Button>
         <div className="space-y-2 border-t border-violet-400/25 pt-3">
           <h3 className="font-semibold">Join a Trip</h3>
           <Input
