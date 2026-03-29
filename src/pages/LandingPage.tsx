@@ -27,7 +27,7 @@ export function LandingPage() {
 
       <section className="relative z-10 space-y-5">
         {/* Hackathon MVP badge removed */}
-        <h1 className="font-display text-4xl font-bold leading-tight md:text-6xl">
+        <h1 className="font-display text-4xl font-bold leading-tight md:text-6xl text-blue-600">
           Plan a group trip without the group chat chaos.
         </h1>
         <p className="max-w-xl text-slate-600">

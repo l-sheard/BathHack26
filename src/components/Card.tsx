@@ -5,12 +5,10 @@ export function Card({ children, className }: PropsWithChildren<{ className?: st
   return (
     <div
       className={cn(
-        "card",
-        "rounded-3xl border border-violet-400/25 p-5 shadow-lift backdrop-blur-xl relative overflow-hidden",
-        "bg-[#0a041c]/78 dark:bg-[#0a041c]/78",
-        "before:pointer-events-none before:absolute before:inset-0 before:rounded-3xl before:bg-gradient-to-br before:from-violet-300/12 before:to-transparent before:content-[''] dark:before:block",
-        "[data-theme=light] & bg-transparent !important",
-        "[data-theme=light] & before:hidden",
+        "card p-6 relative overflow-hidden",
+        "rounded-card border border-border bg-white shadow-card transition-all duration-200",
+        "bg-gradient-to-b from-white to-[#FBF8FF]",
+        "hover:shadow-[0_16px_48px_0_rgba(139,92,246,0.16)] hover:scale-[1.01]",
         className
       )}
     >

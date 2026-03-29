@@ -1,13 +1,25 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ThemeToggle } from "./ThemeToggle";
 import { useUser } from "../contexts/UserContext";
 
 export function Header() {
   const { user, loading } = useUser();
+  const navigate = useNavigate();
   return (
-    <header className="sticky top-0 z-20 pt-4">
+    <header className="sticky top-0 z-20 pt-4 bg-transparent">
       <div className="mx-auto w-full max-w-6xl px-4">
-        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/75 px-4 py-3 shadow-[0_18px_36px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+        <div
+          className="navbar flex items-center justify-between px-4 py-3"
+          style={{
+            background: 'transparent',
+            borderBottom: '1px solid rgba(0,0,0,0.05)',
+            boxShadow: 'none',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
+            borderRadius: '0',
+            transition: 'background 0.2s, border 0.2s',
+          }}
+        >
           <Link
             to="/"
             className="font-display text-xl font-bold tracking-tight text-transparent bg-gradient-to-r from-ocean to-mint bg-clip-text"
@@ -34,7 +46,16 @@ export function Header() {
                 </>
               )}
               {!loading && user && (
-                <div title={user.email} className="rounded-full bg-slate-700 w-9 h-9 flex items-center justify-center text-white font-bold text-lg cursor-pointer">
+                <div
+                  title={user.email}
+                  className="rounded-full w-9 h-9 flex items-center justify-center font-bold text-lg cursor-pointer transition-colors bg-slate-700 text-white dark:bg-slate-700 dark:text-white bg-white text-slate-700"
+                  style={{
+                    background: 'var(--profile-bg, #fff)',
+                    color: 'var(--profile-fg, #1A1625)',
+                  }}
+                  onClick={() => navigate('/dashboard')}
+                  data-theme-profile
+                >
                   <span role="img" aria-label="profile">👤</span>
                 </div>
               )}
