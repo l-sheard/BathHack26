@@ -4,6 +4,7 @@ import { Card } from "../components/Card";
 import { Section } from "../components/Section";
 import { Badge } from "../components/Badge";
 import { useTrip, useTripOptions } from "../hooks/queries";
+import { useEffect, useState } from "react";
 import { currency } from "../lib/utils";
 
 function formatUkDate(dateValue: string) {
@@ -47,6 +48,20 @@ function parseAccommodationMeta(accommodation: any) {
   };
 }
 
+function getWikipediaImage(destination: string): string {
+  // Basic mapping for demo purposes; in production, use Wikipedia API for dynamic fetching
+  const wikiImages: Record<string, string> = {
+    Paris:
+      "https://upload.wikimedia.org/wikipedia/commons/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg",
+    London:
+      "https://upload.wikimedia.org/wikipedia/commons/c/cd/London_Montage_L.jpg",
+    Rome:
+      "https://upload.wikimedia.org/wikipedia/commons/6/6e/Colosseum_in_Rome%2C_Italy_-_April_2007.jpg",
+    // Add more destinations as needed
+  };
+  return wikiImages[destination] || "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg";
+}
+
 function TripOptionSummary({
   option,
   imageUrl,
@@ -59,13 +74,42 @@ function TripOptionSummary({
   const accommodation = option.accommodation_options?.[0];
   const accommodationMeta = parseAccommodationMeta(accommodation);
   const transportPlans = option.transport_plans ?? [];
-  const flightCount = transportPlans.filter(
-    (plan: any) => plan.mode === "plane",
-  ).length;
-  const trainCount = transportPlans.filter(
-    (plan: any) => plan.mode === "train",
-  ).length;
-  const resolvedImageUrl = imageUrl ?? option.image_url;
+  const flightCount = transportPlans.filter((plan: any) => plan.mode === "plane").length;
+  const trainCount = transportPlans.filter((plan: any) => plan.mode === "train").length;
+
+  // Wikipedia image fetch logic
+  const [wikiImage, setWikiImage] = useState<string | null>(null);
+  useEffect(() => {
+    let ignore = false;
+    async function fetchWikiImage() {
+      if (imageUrl) {
+        setWikiImage(imageUrl);
+        return;
+      }
+      // Try to use a more specific location if available
+      let searchTitle = option.destination;
+      if (accommodationMeta && accommodationMeta.location) {
+        // Use e.g. 'Split, Croatia' if available
+        searchTitle = `${option.destination}, ${accommodationMeta.location}`;
+      }
+      try {
+        const title = encodeURIComponent(searchTitle);
+        let res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${title}`);
+        // If not found, try just the destination name
+        if (!res.ok) {
+          const fallbackTitle = encodeURIComponent(option.destination);
+          res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${fallbackTitle}`);
+        }
+        if (!res.ok) throw new Error("No Wikipedia page");
+        const data = await res.json();
+        if (!ignore) setWikiImage(data.thumbnail?.source || "/beach.jpg");
+      } catch {
+        if (!ignore) setWikiImage("/beach.jpg");
+      }
+    }
+    fetchWikiImage();
+    return () => { ignore = true; };
+  }, [option.destination, imageUrl, accommodationMeta && accommodationMeta.location]);
 
   return (
     <div
@@ -82,20 +126,14 @@ function TripOptionSummary({
       <Card className="overflow-hidden border-violet-400/40 bg-gradient-to-br from-violet-600/30 to-fuchsia-500/10 shadow-xl backdrop-blur-lg transition-all duration-200 hover:shadow-2xl">
         <div className="grid md:grid-cols-[320px_1fr]">
           <div className="relative h-56 w-full overflow-hidden md:h-full md:min-h-[220px]">
-            {resolvedImageUrl ? (
-              <img
-                src={resolvedImageUrl}
-                alt={option.destination}
-                className="h-full w-full rounded-2xl object-cover"
-                onError={(e) => {
-                  console.error("Image failed to load:", resolvedImageUrl, e);
-                }}
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                No image available
-              </div>
-            )}
+            <img
+              src={wikiImage || "/beach.jpg"}
+              alt={option.destination}
+              className="h-full w-full rounded-2xl object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/beach.jpg";
+              }}
+            />
           </div>
 
           <div className="space-y-3 p-4">
@@ -237,7 +275,7 @@ export function TripOptionsPage() {
             <TripOptionSummary
               key={option.id}
               option={option}
-              imageUrl={fallbackImages[option.destination]}
+              imageUrl={option.image_url || fallbackImages[option.destination]}
               onClick={() =>
                 navigate(
                   `/trip/${tripId}/options/${option.id}${participantQuery}`,

@@ -27,8 +27,8 @@ export function LandingPage() {
 
       <section className="relative z-10 space-y-5">
         {/* Hackathon MVP badge removed */}
-        <h1 className="font-display text-4xl font-bold leading-tight md:text-6xl text-blue-600">
-          Plan a group trip without the group chat chaos.
+        <h1 className="font-display text-4xl font-bold leading-tight md:text-6xl">
+          <span className="block text-blue-600">Get the group trip out the group chat</span>
         </h1>
         <p className="max-w-xl text-slate-600">
           Create a trip, collect preferences, generate 3 realistic options, vote together, and track booking progress in one place.
@@ -37,7 +37,7 @@ export function LandingPage() {
       <Card className="relative z-10 space-y-3 border-violet-400/35 shadow-[0_25px_60px_rgba(124,58,237,0.35)]">
         <div className="pointer-events-none absolute -top-16 left-1/2 h-44 w-44 -translate-x-1/2 rounded-full bg-violet-500/30 blur-3xl" />
         <h2 className="font-display text-xl font-bold">Create or join a trip</h2>
-        <Button className="w-full" onClick={() => navigate('/create')}>
+        <Button variant="primary" className="w-full" onClick={() => navigate('/create')}>
           Create Trip
         </Button>
         <div className="space-y-2 border-t border-violet-400/25 pt-3">

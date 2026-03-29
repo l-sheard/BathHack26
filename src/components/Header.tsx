@@ -23,9 +23,14 @@ export function Header() {
         >
           <Link
             to="/"
-            className="font-display text-xl font-bold tracking-tight text-transparent bg-gradient-to-r from-ocean to-mint bg-clip-text"
+            className="flex items-center"
+            aria-label="Home"
           >
-            Group Trip Planner
+            <img
+              src="/logo26.png"
+              alt="Group Trip Planner Logo"
+              className="h-12 w-auto"
+            />
           </Link>
           <div className="flex items-center gap-3">
             <ThemeToggle />
