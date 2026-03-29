@@ -76,6 +76,8 @@ function TripOptionSummary({
   const flightCount = transportPlans.filter((plan: any) => plan.mode === "plane").length;
   const trainCount = transportPlans.filter((plan: any) => plan.mode === "train").length;
   const resolvedImageUrl = imageUrl ?? option.image_url;
+  // Debug logging for image troubleshooting
+  console.log('TripOptionSummary', { option, imageUrl, optionImageUrl: option.image_url, resolvedImageUrl });
   const currentVote = votes.find((vote) => vote.participant_id === participantId)?.trip_option_id;
   // Use selectedOption if set, otherwise fall back to backend vote
   const selected = selectedOption ? selectedOption === option.id : currentVote === option.id;
@@ -104,8 +106,11 @@ function TripOptionSummary({
                   src={resolvedImageUrl}
                   alt={option.destination}
                   className="h-full w-full object-cover rounded-2xl"
+                  onError={e => {
+                    console.error('Image failed to load:', resolvedImageUrl, e);
+                  }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" />
+                {/* Gradient overlay temporarily removed for debugging */}
               </>
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-slate-500">No image available</div>

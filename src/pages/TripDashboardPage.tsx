@@ -34,8 +34,10 @@ export function TripDashboardPage() {
       {/* Big purple glow background across the whole page */}
       <div className="pointer-events-none fixed z-0 h-[900px] w-[900px] right-[-300px] bottom-[-300px] rounded-full bg-[radial-gradient(circle,rgba(168,85,247,0.32)_0%,rgba(124,58,237,0.18)_60%,rgba(59,130,246,0.12)_80%,transparent_100%)] blur-[140px]" />
       <div className="relative mx-auto max-w-2xl space-y-6">
-        <Section title={trip.data?.name ?? "Trip dashboard"} subtitle={undefined}>
-          <Card className="space-y-4 bg-white/15 backdrop-blur-md shadow-lg">
+        <Card className="space-y-4 bg-white/15 backdrop-blur-md shadow-lg">
+          <h1 className="text-3xl font-extrabold tracking-tight text-black mb-4 text-center">
+            {trip.data?.title || trip.data?.name || "Trip dashboard"}
+          </h1>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Button variant="ghost" onClick={() => navigate('/dashboard')}>
               ← Back to all trips
@@ -69,7 +71,7 @@ export function TripDashboardPage() {
                   return (
                     <>
                       <Button
-                        onClick={() => navigate(`/trip/${tripId}/generate${participantId ? `?participantId=${participantId}` : ""}`)}
+                        onClick={() => navigate(`/trip/${tripId}/generation${participantId ? `?participantId=${participantId}` : ""}`)}
                         disabled={!hasPreferences}
                         title={!hasPreferences ? "At least one participant must fill out the trip preference form before generating options." : undefined}
                       >
@@ -116,11 +118,10 @@ export function TripDashboardPage() {
             )}
           </div>
           </Card>
-        </Section>
 
       <Modal open={isShareOpen} onClose={() => setIsShareOpen(false)}>
-        <h3 className="font-display text-lg font-bold">Share this join link</h3>
-        <p className="mt-2 break-all rounded-lg bg-slate-100 p-2 text-sm">
+        <h3 className="font-display text-lg font-bold text-gray-800">Share this join link</h3>
+        <p className="mt-2 break-all rounded-lg bg-slate-100 p-2 text-sm text-gray-900">
           {makeShareLink(tripId, trip.data?.share_code ?? "")}
         </p>
         <div className="mt-4">
