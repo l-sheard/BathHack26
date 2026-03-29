@@ -117,6 +117,7 @@ function TripOptionSummary({
             )}
           </div>
 
+        <>
           <div className="space-y-3 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -163,6 +164,7 @@ function TripOptionSummary({
 
             <p className="text-xs text-slate-500 italic">Click to see full details →</p>
           </div>
+        </>
         </div>
       </Card>
     </div>
@@ -170,72 +172,45 @@ function TripOptionSummary({
 }
 
 export function TripOptionsPage() {
-  const { tripId = "" } = useParams();
-  const [search] = useSearchParams();
   const navigate = useNavigate();
-  const participantId = search.get("participantId") ?? undefined;
+  const { tripId } = useParams<{ tripId: string }>();
+  const [searchParams] = useSearchParams();
+  const participantId = searchParams.get("participantId") || undefined;
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [submitClicked, setSubmitClicked] = useState(false);
+  const [voteError, setVoteError] = useState<string | null>(null);
+  const [voteSuccess, setVoteSuccess] = useState(false);
+
   const trip = useTrip(tripId);
   const options = useTripOptions(tripId);
   const votes = useVotes(tripId);
-  const [fallbackImages, setFallbackImages] = useState<Record<string, string | null>>({});
-  const [voteError, setVoteError] = useState<string | null>(null);
-  const [voteSuccess, setVoteSuccess] = useState<boolean>(false);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [submitClicked, setSubmitClicked] = useState(false);
+  const castVote = useCastVote(tripId);
 
-  const castVote = useCastVote(tripId, participantId ?? "");
+  // Fallback images for destinations (customize as needed)
+  const fallbackImages: Record<string, string> = {
+    Paris: '/public/paris.jpg',
+    London: '/public/london.jpg',
+    Rome: '/public/rome.jpg',
+    // ...add more as needed
+  };
 
-  useEffect(() => {
-    const currentOptions = options.data ?? [];
-    if (currentOptions.length === 0) {
-      return;
-    }
-
-    const uniqueDestinations = Array.from(
-      new Set(currentOptions.map((option: any) => option.destination).filter(Boolean))
-    ) as string[];
-
-    if (uniqueDestinations.length === 0) {
-      return;
-    }
-
-    let isCancelled = false;
-    fetchDestinationImages(uniqueDestinations)
-      .then((imagesByDestination) => {
-        if (!isCancelled) {
-          setFallbackImages(imagesByDestination);
-        }
-      })
-      .catch(() => {
-        // Ignore image fallback failures to keep the page usable.
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [options.data]);
-
-  useEffect(() => {
-    if (castVote.isSuccess) {
-      setVoteSuccess(true);
-      setVoteError(null);
-      setTimeout(() => setVoteSuccess(false), 2000);
-    }
-    if (castVote.isError) {
-      setVoteError(castVote.error instanceof Error ? castVote.error.message : String(castVote.error));
-      setVoteSuccess(false);
-      // Log error for debugging
-      // eslint-disable-next-line no-console
-      console.error("Vote error:", castVote.error);
-    }
-  }, [castVote.isSuccess, castVote.isError, castVote.error]);
-
+  // Voting handler
   const handleVote = (optionId: string) => {
     setVoteError(null);
     setVoteSuccess(false);
     setSelectedOption(optionId);
+    castVote.mutate(optionId, {
+      onSuccess: () => {
+        setVoteSuccess(true);
+        votes.refetch();
+      },
+      onError: (err: any) => {
+        setVoteError(err?.message || 'Failed to vote');
+        setVoteSuccess(false);
+      },
+    });
   };
-
+  // ...existing code...
   const handleSubmit = () => {
     if (!selectedOption) return;
     setSubmitClicked(true);
@@ -265,74 +240,65 @@ export function TripOptionsPage() {
       : "Dates not set yet";
 
   return (
-    <div className="space-y-6">
-      <Section
-        title="Trip Options"
-        subtitle="Choose your favorite option or go back to invite more participants"
-      >
-        <Card className="space-y-3">
-          <div className="rounded-lg bg-ocean/10 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-ocean">Selected trip dates</p>
-            <p className="text-base font-semibold text-ink">{overallDateText}</p>
-          </div>
-          <p className="text-sm text-slate-600">
-            Three personalized trip options have been created based on your group's preferences. Click any option to see full details.
-          </p>
-          <div className="flex gap-2">
-            <Button onClick={() => navigate(`/trip/${tripId}/dashboard${participantId ? `?participantId=${participantId}` : ""}`)}>
-              Go to dashboard
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => navigate(`/trip/${tripId}/dashboard${participantId ? `?participantId=${participantId}` : ""}`)}
-            >
-              Back
-            </Button>
-          </div>
-        </Card>
-      </Section>
-
-      {voteError && <div className="text-red-600 font-semibold">Voting failed: {voteError}</div>}
-      {voteSuccess && <div className="text-green-600 font-semibold">Vote registered!</div>}
-
-      {options.isLoading && <p className="text-sm text-slate-600">Loading options...</p>}
-      {options.error && <p className="text-sm text-red-600">{String(options.error)}</p>}
-
-      {options.data && options.data.length > 0 ? (
-        <>
-          <div className="space-y-4">
-            {options.data.map((option: any) => (
-              <TripOptionSummary
-                key={option.id}
-                option={option}
-                imageUrl={fallbackImages[option.destination]}
-                onClick={() => navigate(`/trip/${tripId}/options/${option.id}${participantId ? `?participantId=${participantId}` : ""}`)}
-                onVote={handleVote}
-                votes={votes.data ?? []}
-                participantId={participantId}
-                voting={castVote.isPending}
-                selectedOption={selectedOption}
-              />
-            ))}
-          </div>
-          {/* Show submit button if an option is selected */}
-          {selectedOption && (
-            <div className="mt-6 flex justify-center">
+    <>
+      <div className="space-y-6">
+        <Section
+          title="Trip Options"
+          subtitle="Choose your favorite option or go back to invite more participants"
+        >
+          <Card className="space-y-3">
+            <div className="rounded-lg bg-ocean/10 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-ocean">Selected trip dates</p>
+              <p className="text-base font-semibold text-ink">{overallDateText}</p>
+            </div>
+            <p className="text-sm text-slate-600">
+              Three personalized trip options have been created based on your group's preferences. Click any option to see full details.
+            </p>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate(`/trip/${tripId}/dashboard${participantId ? `?participantId=${participantId}` : ""}`)}>
+                Go to dashboard
+              </Button>
               <Button
-                onClick={handleSubmit}
-                disabled={castVote.isPending || submitClicked}
-                className="px-8 py-2 text-lg"
+                variant="ghost"
+                onClick={() => navigate(`/trip/${tripId}/dashboard${participantId ? `?participantId=${participantId}` : ""}`)}
               >
-                Submit
+                Back
               </Button>
             </div>
-          )}
-        </>
-      ) : (
-        <Card>
-          <p className="text-sm text-slate-600">No options generated yet. Go back and try again.</p>
-        </Card>
-      )}
-    </div>
+          </Card>
+        </Section>
+
+        {voteError && <div className="text-red-600 font-semibold">Voting failed: {voteError}</div>}
+        {voteSuccess && <div className="text-green-600 font-semibold">Vote registered!</div>}
+
+        {options.isLoading && <p className="text-sm text-slate-600">Loading options...</p>}
+        {options.error && <p className="text-sm text-red-600">{String(options.error)}</p>}
+
+        {options.data && options.data.length > 0 ? (
+          <>
+            <div className="space-y-4">
+              {options.data.map((option: any) => (
+                <TripOptionSummary
+                  key={option.id}
+                  option={option}
+                  imageUrl={fallbackImages[option.destination]}
+                  onClick={() => navigate(`/trip/${tripId}/options/${option.id}${participantId ? `?participantId=${participantId}` : ""}`)}
+                  onVote={handleVote}
+                  votes={votes.data ?? []}
+                  participantId={participantId}
+                  voting={castVote.isPending}
+                  selectedOption={selectedOption}
+                />
+              ))}
+            </div>
+            {/* Submit button removed: voting is now instant on selection */}
+          </>
+        ) : (
+          <Card>
+            <p className="text-sm text-slate-600">No options generated yet. Go back and try again.</p>
+          </Card>
+        )}
+      </div>
+    </>
   );
 }

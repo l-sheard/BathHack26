@@ -1,4 +1,11 @@
 /* Profile icon theme styles */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Profile icon theme styles */
 [data-theme="light"] [data-theme-profile] {
   background: #fff !important;
   color: #1A1625 !important;
@@ -59,7 +66,6 @@
 [data-theme="dark"] .glow-blue {
   opacity: 0 !important;
 }
-
 /* --- Premium SaaS Light Mode Design System --- */
 [data-theme="light"] body {
   color: #1A1625;
@@ -150,14 +156,6 @@
 [data-theme="light"] .text-muted {
   color: #9A94B2 !important;
 }
-
-/* Move @import to the very top for Vite/Tailwind compatibility */
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap");
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 
 :root {
   color-scheme: dark;
