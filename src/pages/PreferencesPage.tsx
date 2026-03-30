@@ -7,8 +7,15 @@ import { Card } from "../components/Card";
 import { CheckboxGroup } from "../components/CheckboxGroup";
 import { Input } from "../components/Input";
 import { Section } from "../components/Section";
-import { useParticipantPreferences, useSavePreferences } from "../hooks/queries";
-import { defaultPreferencesValues, preferencesSchema, type PreferencesFormValues } from "../schemas/preferencesSchema";
+import {
+  useParticipantPreferences,
+  useSavePreferences,
+} from "../hooks/queries";
+import {
+  defaultPreferencesValues,
+  preferencesSchema,
+  type PreferencesFormValues,
+} from "../schemas/preferencesSchema";
 
 const tagOptions = [
   { label: "Beach", value: "beach" },
@@ -17,7 +24,7 @@ const tagOptions = [
   { label: "Adventure", value: "adventure" },
   { label: "Relaxation", value: "relaxation" },
   { label: "Nightlife", value: "nightlife" },
-  { label: "Culture", value: "culture" }
+  { label: "Culture", value: "culture" },
 ];
 
 const UK_AIRPORT_OPTIONS = [
@@ -49,7 +56,7 @@ const UK_AIRPORT_OPTIONS = [
   "London Southend (SEN)",
   "Isle of Man (IOM)",
   "Jersey (JER)",
-  "Guernsey (GCI)"
+  "Guernsey (GCI)",
 ] as const;
 
 const UK_TRAIN_STATION_OPTIONS = [
@@ -77,7 +84,7 @@ const UK_TRAIN_STATION_OPTIONS = [
   "Cambridge",
   "Oxford",
   "Southampton Central",
-  "Exeter St Davids"
+  "Exeter St Davids",
 ] as const;
 
 const COUNTRY_OPTIONS = [
@@ -274,13 +281,16 @@ const COUNTRY_OPTIONS = [
   "Vietnam",
   "Yemen",
   "Zambia",
-  "Zimbabwe"
+  "Zimbabwe",
 ] as const;
 
-function boolItems(prefix: "accessibility" | "dietary" | "sustainability", entries: Array<{ key: string; label: string }>) {
+function boolItems(
+  prefix: "accessibility" | "dietary" | "sustainability",
+  entries: Array<{ key: string; label: string }>,
+) {
   return entries.map((entry) => ({
     path: `${prefix}.${entry.key}` as const,
-    label: entry.label
+    label: entry.label,
   }));
 }
 
@@ -292,12 +302,12 @@ export function PreferencesPage() {
 
   const form = useForm<PreferencesFormValues>({
     resolver: zodResolver(preferencesSchema),
-    defaultValues: defaultPreferencesValues
+    defaultValues: defaultPreferencesValues,
   });
 
   const availability = useFieldArray({
     control: form.control,
-    name: "availability_windows"
+    name: "availability_windows",
   });
 
   const selectedTransportPreference = form.watch("transport_preference");
@@ -327,10 +337,12 @@ export function PreferencesPage() {
     const payload = {
       ...defaultPreferencesValues,
       ...existing.data,
-      availability_windows: (existing.data.availability_windows ?? []).map((window: any) => ({
-        start_date: window.start_date,
-        end_date: window.end_date
-      }))
+      availability_windows: (existing.data.availability_windows ?? []).map(
+        (window: any) => ({
+          start_date: window.start_date,
+          end_date: window.end_date,
+        }),
+      ),
     };
     form.reset(payload);
   }, [existing.data, form]);
@@ -341,15 +353,33 @@ export function PreferencesPage() {
 
   return (
     <form className="space-y-6" onSubmit={onSubmit}>
-      <Section title="Participant Preferences" subtitle="You can edit and save this any time.">
-        <Card className="space-y-6">
+      <Section
+        title="Participant Preferences"
+        subtitle="You can edit and save this any time."
+      >
+        <Card className="space-y-6 text-black rounded-3xl">
           <Section title="Availability">
             <div className="space-y-2">
               {availability.fields.map((field, index) => (
-                <div key={field.id} className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
-                  <Input type="date" {...form.register(`availability_windows.${index}.start_date`)} />
-                  <Input type="date" {...form.register(`availability_windows.${index}.end_date`)} />
-                  <Button type="button" variant="ghost" onClick={() => availability.remove(index)}>
+                <div
+                  key={field.id}
+                  className="grid gap-2 md:grid-cols-[1fr_1fr_auto]"
+                >
+                  <Input
+                    type="date"
+                    {...form.register(
+                      `availability_windows.${index}.start_date`,
+                    )}
+                  />
+                  <Input
+                    type="date"
+                    {...form.register(`availability_windows.${index}.end_date`)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => availability.remove(index)}
+                  >
                     Remove
                   </Button>
                 </div>
@@ -357,19 +387,28 @@ export function PreferencesPage() {
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => availability.append({ start_date: "", end_date: "" })}
+                onClick={() =>
+                  availability.append({ start_date: "", end_date: "" })
+                }
               >
                 Add date range
               </Button>
               {form.formState.errors.availability_windows ? (
-                <p className="text-sm text-red-600">{form.formState.errors.availability_windows.message as string}</p>
+                <p className="text-sm text-red-600">
+                  {form.formState.errors.availability_windows.message as string}
+                </p>
               ) : null}
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
               <label className="space-y-1">
-                <span className="text-sm font-semibold">Preferred trip length (days)</span>
-                <Input type="number" {...form.register("preferred_trip_length")} />
+                <span className="text-sm font-semibold">
+                  Preferred trip length (days)
+                </span>
+                <Input
+                  type="number"
+                  {...form.register("preferred_trip_length")}
+                />
               </label>
               <label className="space-y-1">
                 <span className="text-sm font-semibold">Flexibility notes</span>
@@ -382,7 +421,10 @@ export function PreferencesPage() {
             <div className="grid gap-3 md:grid-cols-2">
               <label className="space-y-1">
                 <span className="text-sm font-semibold">Travel preference</span>
-                <select className="w-full rounded-xl border border-slate-300 p-2" {...form.register("transport_preference")}>
+                <select
+                  className="w-full rounded-xl border border-slate-300 p-2"
+                  {...form.register("transport_preference")}
+                >
                   <option value="plane">Plane</option>
                   <option value="train">Train</option>
                   <option value="either">Either</option>
@@ -391,22 +433,32 @@ export function PreferencesPage() {
               <label className="space-y-1">
                 <span className="text-sm font-semibold">{departureLabel}</span>
                 <Input
+                  className="text-black"
                   {...form.register("departure_location")}
                   list="uk-departure-options"
                   placeholder="Start typing to search departures"
                 />
               </label>
               <label className="space-y-1">
-                <span className="text-sm font-semibold">Max travel time (hours)</span>
-                <Input type="number" {...form.register("max_travel_time_hours")} />
+                <span className="text-sm font-semibold">
+                  Max travel time (hours)
+                </span>
+                <Input
+                  type="number"
+                  {...form.register("max_travel_time_hours")}
+                />
               </label>
               <label className="space-y-1">
-                <span className="text-sm font-semibold">{alternativesLabel}</span>
+                <span className="text-sm font-semibold">
+                  {alternativesLabel}
+                </span>
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-2">
                     <Input
                       value={alternativeInput}
-                      onChange={(event) => setAlternativeInput(event.target.value)}
+                      onChange={(event) =>
+                        setAlternativeInput(event.target.value)
+                      }
                       onKeyDown={(event) => {
                         if (event.key !== "Enter") return;
                         event.preventDefault();
@@ -417,7 +469,11 @@ export function PreferencesPage() {
                           setAlternativeInput("");
                           return;
                         }
-                        form.setValue("alternative_locations", [...current, next], { shouldValidate: true });
+                        form.setValue(
+                          "alternative_locations",
+                          [...current, next],
+                          { shouldValidate: true },
+                        );
                         setAlternativeInput("");
                       }}
                       list="uk-departure-options"
@@ -434,7 +490,11 @@ export function PreferencesPage() {
                           setAlternativeInput("");
                           return;
                         }
-                        form.setValue("alternative_locations", [...current, next], { shouldValidate: true });
+                        form.setValue(
+                          "alternative_locations",
+                          [...current, next],
+                          { shouldValidate: true },
+                        );
                         setAlternativeInput("");
                       }}
                     >
@@ -451,12 +511,14 @@ export function PreferencesPage() {
                         {departure}
                         <button
                           type="button"
-                          className="text-slate-500 hover:text-slate-700"
+                          className="text-black hover:text-black"
                           onClick={() =>
                             form.setValue(
                               "alternative_locations",
-                              form.getValues("alternative_locations").filter((item) => item !== departure),
-                              { shouldValidate: true }
+                              form
+                                .getValues("alternative_locations")
+                                .filter((item) => item !== departure),
+                              { shouldValidate: true },
                             )
                           }
                         >
@@ -478,7 +540,9 @@ export function PreferencesPage() {
           <Section title="Budget">
             <div className="grid gap-3 md:grid-cols-2">
               <label className="space-y-1">
-                <span className="text-sm font-semibold">Total trip budget (GBP)</span>
+                <span className="text-sm font-semibold">
+                  Total trip budget (GBP)
+                </span>
                 <Input type="number" {...form.register("total_budget")} />
               </label>
             </div>
@@ -488,7 +552,12 @@ export function PreferencesPage() {
             label="Trip preferences"
             options={tagOptions}
             selected={form.watch("trip_preferences")}
-            onChange={(next) => form.setValue("trip_preferences", next as PreferencesFormValues["trip_preferences"])}
+            onChange={(next) =>
+              form.setValue(
+                "trip_preferences",
+                next as PreferencesFormValues["trip_preferences"],
+              )
+            }
           />
 
           <Section title="Accessibility requirements">
@@ -497,12 +566,21 @@ export function PreferencesPage() {
                 { key: "ground_floor", label: "Ground floor accommodation" },
                 { key: "lift_access", label: "Lift access" },
                 { key: "step_free_access", label: "Step-free access" },
-                { key: "wheelchair_accessible", label: "Wheelchair accessible accommodation" },
+                {
+                  key: "wheelchair_accessible",
+                  label: "Wheelchair accessible accommodation",
+                },
                 { key: "accessible_bathroom", label: "Accessible bathroom" },
                 { key: "reduced_walking", label: "Reduced walking" },
-                { key: "close_to_public_transport", label: "Close to public transport" }
+                {
+                  key: "close_to_public_transport",
+                  label: "Close to public transport",
+                },
               ]).map((item) => (
-                <label key={item.path} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2 text-sm">
+                <label
+                  key={item.path}
+                  className="flex items-center gap-2 rounded-lg border border-slate-200 p-2 text-sm"
+                >
                   <input type="checkbox" {...form.register(item.path as any)} />
                   {item.label}
                 </label>
@@ -523,9 +601,12 @@ export function PreferencesPage() {
                 { key: "kosher", label: "Kosher" },
                 { key: "gluten_free", label: "Gluten-free" },
                 { key: "dairy_free", label: "Dairy-free" },
-                { key: "nut_allergy", label: "Nut allergy" }
+                { key: "nut_allergy", label: "Nut allergy" },
               ]).map((item) => (
-                <label key={item.path} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2 text-sm">
+                <label
+                  key={item.path}
+                  className="flex items-center gap-2 rounded-lg border border-slate-200 p-2 text-sm"
+                >
                   <input type="checkbox" {...form.register(item.path as any)} />
                   {item.label}
                 </label>
@@ -540,12 +621,27 @@ export function PreferencesPage() {
           <Section title="Sustainability preferences">
             <div className="grid gap-2 md:grid-cols-2">
               {boolItems("sustainability", [
-                { key: "prefer_train_over_plane", label: "Prefer train over plane" },
-                { key: "willing_longer_for_lower_emissions", label: "Willing to travel longer for lower emissions" },
-                { key: "prefer_eco_accommodation", label: "Prefer eco-friendly accommodation" },
-                { key: "sustainable_activities", label: "Prefer sustainable activities" }
+                {
+                  key: "prefer_train_over_plane",
+                  label: "Prefer train over plane",
+                },
+                {
+                  key: "willing_longer_for_lower_emissions",
+                  label: "Willing to travel longer for lower emissions",
+                },
+                {
+                  key: "prefer_eco_accommodation",
+                  label: "Prefer eco-friendly accommodation",
+                },
+                {
+                  key: "sustainable_activities",
+                  label: "Prefer sustainable activities",
+                },
               ]).map((item) => (
-                <label key={item.path} className="flex items-center gap-2 rounded-lg border border-slate-200 p-2 text-sm">
+                <label
+                  key={item.path}
+                  className="flex items-center gap-2 rounded-lg border border-slate-200 p-2 text-sm"
+                >
                   <input type="checkbox" {...form.register(item.path as any)} />
                   {item.label}
                 </label>
@@ -556,7 +652,9 @@ export function PreferencesPage() {
           <Section title="Travel documentation">
             <div className="grid gap-3 md:grid-cols-2">
               <label className="space-y-1">
-                <span className="text-sm font-semibold">Passport nationality</span>
+                <span className="text-sm font-semibold">
+                  Passport nationality
+                </span>
                 <Input
                   {...form.register("passport_nationality")}
                   list="country-options"
@@ -564,7 +662,9 @@ export function PreferencesPage() {
                 />
               </label>
               <label className="space-y-1">
-                <span className="text-sm font-semibold">Country of residence</span>
+                <span className="text-sm font-semibold">
+                  Country of residence
+                </span>
                 <Input
                   {...form.register("residence_country")}
                   list="country-options"
@@ -587,15 +687,22 @@ export function PreferencesPage() {
             <Button type="submit" disabled={saveMutation.isPending}>
               {saveMutation.isPending ? "Saving..." : "Save preferences"}
             </Button>
-            <Link to={`/trip/${tripId}/dashboard?participantId=${participantId}`} className="inline-flex">
+            <Link
+              to={`/trip/${tripId}/dashboard?participantId=${participantId}`}
+              className="inline-flex"
+            >
               <Button type="button" variant="ghost">
                 Go to dashboard
               </Button>
             </Link>
           </div>
 
-          {saveMutation.isSuccess ? <p className="text-sm text-emerald-700">Preferences saved.</p> : null}
-          {saveMutation.error ? <p className="text-sm text-red-600">{String(saveMutation.error)}</p> : null}
+          {saveMutation.isSuccess ? (
+            <p className="text-sm text-emerald-700">Preferences saved.</p>
+          ) : null}
+          {saveMutation.error ? (
+            <p className="text-sm text-red-600">{String(saveMutation.error)}</p>
+          ) : null}
         </Card>
       </Section>
     </form>

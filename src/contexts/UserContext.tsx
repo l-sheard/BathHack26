@@ -1,4 +1,10 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 import { supabase } from "../lib/supabase";
 
 export type User = {
@@ -26,18 +32,23 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const session = supabase.auth.getSession();
     session.then(({ data }) => {
       if (data.session?.user) {
-        setUser({ id: data.session.user.id, email: data.session.user.email ?? "" });
+        setUser({
+          id: data.session.user.id,
+          email: data.session.user.email ?? "",
+        });
       }
       setLoading(false);
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser({ id: session.user.id, email: session.user.email ?? "" });
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session?.user) {
+          setUser({ id: session.user.id, email: session.user.email ?? "" });
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      },
+    );
     return () => {
       listener.subscription.unsubscribe();
     };

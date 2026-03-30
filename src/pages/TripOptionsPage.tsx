@@ -55,11 +55,13 @@ function getWikipediaImage(destination: string): string {
       "https://upload.wikimedia.org/wikipedia/commons/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg",
     London:
       "https://upload.wikimedia.org/wikipedia/commons/c/cd/London_Montage_L.jpg",
-    Rome:
-      "https://upload.wikimedia.org/wikipedia/commons/6/6e/Colosseum_in_Rome%2C_Italy_-_April_2007.jpg",
+    Rome: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Colosseum_in_Rome%2C_Italy_-_April_2007.jpg",
     // Add more destinations as needed
   };
-  return wikiImages[destination] || "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg";
+  return (
+    wikiImages[destination] ||
+    "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg"
+  );
 }
 
 function TripOptionSummary({
@@ -74,8 +76,12 @@ function TripOptionSummary({
   const accommodation = option.accommodation_options?.[0];
   const accommodationMeta = parseAccommodationMeta(accommodation);
   const transportPlans = option.transport_plans ?? [];
-  const flightCount = transportPlans.filter((plan: any) => plan.mode === "plane").length;
-  const trainCount = transportPlans.filter((plan: any) => plan.mode === "train").length;
+  const flightCount = transportPlans.filter(
+    (plan: any) => plan.mode === "plane",
+  ).length;
+  const trainCount = transportPlans.filter(
+    (plan: any) => plan.mode === "train",
+  ).length;
 
   // Wikipedia image fetch logic
   const [wikiImage, setWikiImage] = useState<string | null>(null);
@@ -94,11 +100,15 @@ function TripOptionSummary({
       }
       try {
         const title = encodeURIComponent(searchTitle);
-        let res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${title}`);
+        let res = await fetch(
+          `https://en.wikipedia.org/api/rest_v1/page/summary/${title}`,
+        );
         // If not found, try just the destination name
         if (!res.ok) {
           const fallbackTitle = encodeURIComponent(option.destination);
-          res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${fallbackTitle}`);
+          res = await fetch(
+            `https://en.wikipedia.org/api/rest_v1/page/summary/${fallbackTitle}`,
+          );
         }
         if (!res.ok) throw new Error("No Wikipedia page");
         const data = await res.json();
@@ -108,8 +118,14 @@ function TripOptionSummary({
       }
     }
     fetchWikiImage();
-    return () => { ignore = true; };
-  }, [option.destination, imageUrl, accommodationMeta && accommodationMeta.location]);
+    return () => {
+      ignore = true;
+    };
+  }, [
+    option.destination,
+    imageUrl,
+    accommodationMeta && accommodationMeta.location,
+  ]);
 
   return (
     <div
@@ -123,7 +139,7 @@ function TripOptionSummary({
         }
       }}
     >
-      <Card className="overflow-hidden border-violet-400/40 bg-gradient-to-br from-violet-600/30 to-fuchsia-500/10 shadow-xl backdrop-blur-lg transition-all duration-200 hover:shadow-2xl">
+      <Card className="overflow-hidden border-violet-400/40 bg-gradient-to-br from-violet-600/30 to-fuchsia-500/10 shadow-xl backdrop-blur-lg transition-all duration-200 hover:shadow-2xl text-black rounded-3xl">
         <div className="grid md:grid-cols-[320px_1fr]">
           <div className="relative h-56 w-full overflow-hidden md:h-full md:min-h-[220px]">
             <img
@@ -139,19 +155,19 @@ function TripOptionSummary({
           <div className="space-y-3 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="font-display text-lg font-bold text-ink">
+                <h3 className="font-display text-lg font-bold text-black">
                   Option {option.option_rank}: {option.destination}
                 </h3>
               </div>
               <Badge tone="green">{option.theme.replaceAll("_", " ")}</Badge>
             </div>
 
-            <p className="text-sm text-slate-700">{option.summary}</p>
+            <p className="text-sm text-black">{option.summary}</p>
 
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-lg border border-violet-300/30 bg-white/10 p-3 text-sm backdrop-blur-md">
                 <div className="font-semibold">Per person</div>
-                <div className="text-lg font-bold text-white">
+                <div className="text-lg font-bold text-black">
                   {currency(option.estimated_per_person)}
                 </div>
               </div>
@@ -159,16 +175,16 @@ function TripOptionSummary({
               <div className="rounded-lg border border-violet-300/30 bg-white/10 p-3 text-sm backdrop-blur-md">
                 <div className="font-semibold">Accommodation</div>
                 <div>{accommodation?.name ?? "TBD"}</div>
-                <div className="mt-1 text-xs text-slate-600">
+                <div className="mt-1 text-xs text-black">
                   Price: {currency(accommodation?.nightly_cost ?? 0)} / night
                 </div>
-                <div className="text-xs text-slate-600">
+                <div className="text-xs text-black">
                   Beds: {accommodationMeta.numBeds ?? "TBD"}
                 </div>
-                <div className="text-xs text-slate-600">
+                <div className="text-xs text-black">
                   Location: {accommodationMeta.location ?? "Central area"}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-1 text-xs text-black">
                   Facilities:{" "}
                   {accommodationMeta.facilities.length > 0
                     ? accommodationMeta.facilities.slice(0, 4).join(", ")
@@ -177,12 +193,12 @@ function TripOptionSummary({
               </div>
             </div>
 
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-black">
               Transport: {flightCount} flight leg{flightCount === 1 ? "" : "s"},{" "}
               {trainCount} train leg{trainCount === 1 ? "" : "s"}
             </p>
 
-            <p className="text-xs italic text-slate-500">
+            <p className="text-xs italic text-black">
               Click to see full details →
             </p>
           </div>
@@ -225,17 +241,17 @@ export function TripOptionsPage() {
         title="Trip Options"
         subtitle="Choose your favorite option or go back to invite more participants"
       >
-        <Card className="space-y-3">
+        <Card className="space-y-3 text-black rounded-3xl">
           <div className="rounded-lg bg-ocean/10 p-3">
             <p className="text-ocean text-xs font-semibold uppercase tracking-wide">
               Selected trip dates
             </p>
-            <p className="text-base font-semibold text-ink">
+            <p className="text-base font-semibold text-black">
               {overallDateText}
             </p>
           </div>
 
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-black">
             Three personalized trip options have been created based on your
             group's preferences. Click any option to see full details.
           </p>
@@ -262,7 +278,7 @@ export function TripOptionsPage() {
       </Section>
 
       {options.isLoading && (
-        <p className="text-sm text-slate-600">Loading options...</p>
+        <p className="text-sm text-black">Loading options...</p>
       )}
 
       {options.error && (
@@ -286,7 +302,7 @@ export function TripOptionsPage() {
         </div>
       ) : (
         <Card>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-black">
             No options generated yet. Go back and try again.
           </p>
         </Card>

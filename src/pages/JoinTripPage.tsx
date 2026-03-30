@@ -19,18 +19,30 @@ export function JoinTripPage() {
   const join = useJoinTrip();
 
   return (
-    <Card className="mx-auto max-w-xl space-y-4">
+    <Card className="mx-auto max-w-xl space-y-4 text-black rounded-3xl">
       <h1 className="font-display text-2xl font-bold">Join trip</h1>
-      <p className="text-sm text-slate-600">{trip.data?.name ?? "Loading trip..."}</p>
+      <p className="text-sm text-black">
+        {trip.data?.name ?? "Loading trip..."}
+      </p>
 
       <label className="block space-y-1">
         <span className="text-sm font-semibold">Your name</span>
-        <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Alex" />
+        <Input
+          className="text-black"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Alex"
+        />
       </label>
 
       <label className="block space-y-1">
         <span className="text-sm font-semibold">Email (optional)</span>
-        <Input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="alex@email.com" />
+        <Input
+          className="text-black"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="alex@email.com"
+        />
       </label>
 
       <Button
@@ -41,7 +53,7 @@ export function JoinTripPage() {
             name,
             email,
             shareCode: code,
-            user_id: user?.id
+            user_id: user?.id,
           });
           navigate(`/trip/${tripId}/dashboard?participantId=${participant.id}`);
         }}
@@ -49,8 +61,12 @@ export function JoinTripPage() {
         {join.isPending ? "Joining..." : "Join trip"}
       </Button>
 
-      {!code ? <p className="text-sm text-red-600">Missing share code in URL.</p> : null}
-      {join.error ? <p className="text-sm text-red-600">{String(join.error)}</p> : null}
+      {!code ? (
+        <p className="text-sm text-red-600">Missing share code in URL.</p>
+      ) : null}
+      {join.error ? (
+        <p className="text-sm text-red-600">{String(join.error)}</p>
+      ) : null}
     </Card>
   );
 }

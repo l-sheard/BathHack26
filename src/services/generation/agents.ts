@@ -902,7 +902,7 @@ export async function generateTripOptions(
 
   const { data: existingOptions } = await supabase.from("trip_options").select("id").eq("trip_id", tripId);
   const existingIds = (existingOptions ?? []).map((row: { id: string }) => row.id);
-  
+
   if (existingIds.length > 0) {
     // Delete related records first
     await supabase.from("transport_plans").delete().in("trip_option_id", existingIds);
@@ -911,7 +911,7 @@ export async function generateTripOptions(
     await supabase.from("visa_assessments").delete().in("trip_option_id", existingIds);
     await supabase.from("itinerary_days").delete().in("trip_option_id", existingIds);
     await supabase.from("activity_recommendations").delete().in("trip_option_id", existingIds);
-    
+
     // Then delete trip options
     await supabase.from("trip_options").delete().in("id", existingIds);
   }

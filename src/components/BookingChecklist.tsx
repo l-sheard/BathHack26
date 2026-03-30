@@ -19,7 +19,7 @@ const defaultValue: BookingState = {
   transport_booked: false,
   accommodation_booked: false,
   visa_arranged: false,
-  insurance_arranged: false
+  insurance_arranged: false,
 };
 
 export function BookingChecklist({ value, onSave, loading }: Props) {
@@ -35,7 +35,7 @@ export function BookingChecklist({ value, onSave, loading }: Props) {
     "transport_booked",
     "accommodation_booked",
     "visa_arranged",
-    "insurance_arranged"
+    "insurance_arranged",
   ];
 
   return (
@@ -45,13 +45,15 @@ export function BookingChecklist({ value, onSave, loading }: Props) {
         {fields.map((field) => (
           <label
             key={field}
-            className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/5 p-3 text-sm text-slate-300"
+            className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/5 p-3 text-sm text-black"
           >
             <input
               type="checkbox"
               className="accent-ocean"
               checked={state[field]}
-              onChange={(event) => setState({ ...state, [field]: event.target.checked })}
+              onChange={(event) =>
+                setState({ ...state, [field]: event.target.checked })
+              }
             />
             {field.replace(/_/g, " ")}
           </label>

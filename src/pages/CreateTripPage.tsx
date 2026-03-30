@@ -18,30 +18,48 @@ export function CreateTripPage() {
   const navigate = useNavigate();
 
   return (
-    <Card className="mx-auto max-w-2xl space-y-4">
+    <Card className="mx-auto max-w-2xl space-y-4 text-black rounded-3xl">
       <h1 className="font-display text-2xl font-bold">Create Trip</h1>
-      <p className="text-sm text-slate-600">Set up your trip and share a link for others to join.</p>
+      <p className="text-sm text-black">
+        Set up your trip and share a link for others to join.
+      </p>
 
       <label className="block space-y-1">
         <span className="text-sm font-semibold">Trip name</span>
-        <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Summer Escape" />
+        <Input
+          className="text-black"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Summer Escape"
+        />
       </label>
 
       <div className="grid gap-3 md:grid-cols-2">
         <label className="block space-y-1">
           <span className="text-sm font-semibold">Your name</span>
-          <Input value={creatorName} onChange={(event) => setCreatorName(event.target.value)} placeholder="Alex" />
+          <Input
+            className="text-black"
+            value={creatorName}
+            onChange={(event) => setCreatorName(event.target.value)}
+            placeholder="Alex"
+          />
         </label>
 
         {user ? (
           <label className="block space-y-1">
             <span className="text-sm font-semibold">Your email</span>
-            <Input value={user.email} readOnly disabled className="bg-slate-100 text-slate-500 cursor-not-allowed" />
+            <Input
+              value={user.email}
+              readOnly
+              disabled
+              className="bg-slate-100 text-black cursor-not-allowed"
+            />
           </label>
         ) : (
           <label className="block space-y-1">
             <span className="text-sm font-semibold">Your email (optional)</span>
             <Input
+              className="text-black"
               value={creatorEmail}
               onChange={(event) => setCreatorEmail(event.target.value)}
               placeholder="alex@email.com"
@@ -53,6 +71,7 @@ export function CreateTripPage() {
       <label className="block space-y-1">
         <span className="text-sm font-semibold">Description</span>
         <textarea
+          className="text-black !text-black"
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           placeholder="A 5-day trip with friends"
@@ -61,7 +80,12 @@ export function CreateTripPage() {
       </label>
 
       <Button
-        disabled={!name.trim() || !creatorName.trim() || createTrip.isPending || joinTrip.isPending}
+        disabled={
+          !name.trim() ||
+          !creatorName.trim() ||
+          createTrip.isPending ||
+          joinTrip.isPending
+        }
         onClick={async () => {
           if (!user) {
             alert("You must be logged in to create a trip.");
@@ -70,7 +94,7 @@ export function CreateTripPage() {
           const trip = await createTrip.mutateAsync({
             name,
             description,
-            user_id: user.id
+            user_id: user.id,
           });
 
           const participant = await joinTrip.mutateAsync({
@@ -78,17 +102,25 @@ export function CreateTripPage() {
             name: creatorName,
             email: user ? user.email : creatorEmail,
             shareCode: trip.share_code,
-            user_id: user.id
+            user_id: user.id,
           });
 
-          navigate(`/trip/${trip.id}/dashboard?participantId=${participant.id}`);
+          navigate(
+            `/trip/${trip.id}/dashboard?participantId=${participant.id}`,
+          );
         }}
       >
-        {createTrip.isPending || joinTrip.isPending ? "Creating..." : "Create trip"}
+        {createTrip.isPending || joinTrip.isPending
+          ? "Creating..."
+          : "Create trip"}
       </Button>
 
-      {createTrip.error ? <p className="text-sm text-red-600">{String(createTrip.error)}</p> : null}
-      {joinTrip.error ? <p className="text-sm text-red-600">{String(joinTrip.error)}</p> : null}
+      {createTrip.error ? (
+        <p className="text-sm text-red-600">{String(createTrip.error)}</p>
+      ) : null}
+      {joinTrip.error ? (
+        <p className="text-sm text-red-600">{String(joinTrip.error)}</p>
+      ) : null}
     </Card>
   );
 }

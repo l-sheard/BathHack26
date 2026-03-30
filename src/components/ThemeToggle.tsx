@@ -24,8 +24,8 @@ export function ThemeToggle() {
   return (
     <button
       className={cn(
-        "rounded-full border border-violet-400/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-violet-200 shadow-glow backdrop-blur-xl transition hover:bg-violet-400/20 hover:text-white",
-        "focus:outline-none focus:ring-2 focus:ring-violet-400"
+        "rounded-full border border-violet-400/30 bg-white/10 px-3 py-1.5 text-xs font-semibold text-black shadow-glow backdrop-blur-xl transition hover:bg-violet-400/20 hover:text-black",
+        "focus:outline-none focus:ring-2 focus:ring-violet-400",
       )}
       aria-label="Toggle light/dark mode"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
