@@ -112,7 +112,9 @@ export function GenerationPage() {
   );
   const [currentStep, setCurrentStep] = useState<string | null>(null);
   const [thoughtIndex, setThoughtIndex] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
   const stepRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const startedForTripId = useRef<string | null>(null);
 
   const generateOptions = useGenerateOptions(
     tripId,
@@ -130,15 +132,29 @@ export function GenerationPage() {
             : s,
         ),
       );
+      // Drive completion/navigation directly off this callback (which fires
+      // synchronously from inside generateTripOptions) rather than the
+      // mutation's isSuccess flag, which wasn't reliably reflecting here.
+      if (stepId === "save-results" && status === "complete") {
+        setIsComplete(true);
+      }
     },
   );
 
   useEffect(() => {
+    // Guard against React StrictMode's dev-only double-invoke of effects,
+    // which would otherwise kick off two concurrent generation runs and
+    // duplicate every child record (itinerary days, transport plans, etc.)
+    // inserted under the same trip_options row.
+    if (startedForTripId.current === tripId) {
+      return;
+    }
+    startedForTripId.current = tripId;
     generateOptions.mutate();
   }, [tripId]);
 
   useEffect(() => {
-    if (generateOptions.isSuccess) {
+    if (isComplete) {
       const timer = setTimeout(() => {
         navigate(
           `/trip/${tripId}/options${participantId ? `?participantId=${participantId}` : ""}`,
@@ -146,7 +162,7 @@ export function GenerationPage() {
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [generateOptions.isSuccess, tripId, navigate, participantId]);
+  }, [isComplete, tripId, navigate, participantId]);
 
   useEffect(() => {
     if (!currentStep) {
@@ -317,7 +333,7 @@ export function GenerationPage() {
                   <div className="text-base font-semibold text-black">
                     {currentStep
                       ? progressSteps.find((s) => s.id === currentStep)?.title
-                      : generateOptions.isSuccess
+                      : isComplete
                         ? "Complete!"
                         : "Starting..."}
                   </div>
@@ -326,9 +342,9 @@ export function GenerationPage() {
                 <div>
                   <div className="text-sm text-black mb-1">Status</div>
                   <div
-                    className={`text-base font-semibold ${generateOptions.isSuccess ? "text-emerald-700" : generateOptions.isError ? "text-red-700" : "text-black"}`}
+                    className={`text-base font-semibold ${isComplete ? "text-emerald-700" : generateOptions.isError ? "text-red-700" : "text-black"}`}
                   >
-                    {generateOptions.isSuccess
+                    {isComplete
                       ? "Done"
                       : generateOptions.isError
                         ? "Error"
@@ -339,7 +355,7 @@ export function GenerationPage() {
             </div>
 
             {/* Success message */}
-            {generateOptions.isSuccess && (
+            {isComplete && (
               <div className="pt-2">
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">✨</span>

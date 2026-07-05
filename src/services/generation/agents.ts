@@ -679,6 +679,40 @@ function normalizeDestination(destination: string) {
   return destination.trim().toLowerCase();
 }
 
+// Theme labels are assigned before real flight/accommodation prices are
+// fetched, so the option initially picked as "cheapest" can end up costing
+// more than the others once live quotes come in. Re-check after all cost
+// enrichment and relabel so "cheapest" always matches the lowest actual total.
+function reconcileThemeLabelsByCost(options: GeneratedOption[]): GeneratedOption[] {
+  const cheapestActualIndex = options.reduce(
+    (bestIdx, option, idx) => (option.estimatedTotal < options[bestIdx].estimatedTotal ? idx : bestIdx),
+    0
+  );
+  const labeledCheapestIndex = options.findIndex((option) => option.theme === "cheapest");
+
+  if (labeledCheapestIndex === -1 || labeledCheapestIndex === cheapestActualIndex) {
+    return options;
+  }
+
+  const labeled = options[labeledCheapestIndex];
+  const actual = options[cheapestActualIndex];
+
+  const swapped = [...options];
+  swapped[labeledCheapestIndex] = {
+    ...actual,
+    theme: labeled.theme,
+    optionRank: labeled.optionRank,
+    validationNotes: [...actual.validationNotes, "Re-labeled as cheapest based on final pricing after live quotes."]
+  };
+  swapped[cheapestActualIndex] = {
+    ...labeled,
+    theme: actual.theme,
+    optionRank: actual.optionRank
+  };
+
+  return swapped;
+}
+
 function enforceDistinctOptionDestinations(options: GeneratedOption[], constraints: AggregatedConstraints) {
   const ranked = generateDestinationCandidates(constraints);
   const usedDestinations = new Set<string>();
@@ -952,6 +986,8 @@ export async function generateTripOptions(
   );
   options = await enrichOptionsWithLlmAccommodation(options, constraints);
   updateProgress("find-accommodation", "complete", "Accommodation details finalized and totals refreshed.");
+
+  options = reconcileThemeLabelsByCost(options);
 
   const { data: existingOptions } = await supabase.from("trip_options").select("id").eq("trip_id", tripId);
   const existingIds = (existingOptions ?? []).map((row: { id: string }) => row.id);
