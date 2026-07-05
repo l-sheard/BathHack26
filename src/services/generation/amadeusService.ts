@@ -11,24 +11,6 @@ export type FlightQuote = {
   source?: "live" | "mock-llm";
 };
 
-type SerpApiFlight = {
-  airline?: string;
-  flight_number?: string;
-  departure_airport?: { id?: string };
-  arrival_airport?: { id?: string };
-};
-
-type SerpApiFlightResult = {
-  price?: number | string;
-  total_duration?: number | string;
-  flights?: SerpApiFlight[];
-};
-
-type SerpApiResponse = {
-  best_flights?: SerpApiFlightResult[];
-  other_flights?: SerpApiFlightResult[];
-};
-
 function toDurationHours(durationValue?: number | string) {
   if (typeof durationValue === "number" && Number.isFinite(durationValue)) {
     if (durationValue > 24) {
@@ -158,49 +140,28 @@ export async function fetchMockFlightQuoteWithLLM(input: FlightQuoteInput): Prom
 
 export async function fetchFlightQuote(input: FlightQuoteInput): Promise<FlightQuote | null> {
   try {
-    const apiKey = import.meta.env.VITE_SERPAPI_API_KEY as string | undefined;
-    const apiBase =
-      (import.meta.env.VITE_SERPAPI_API_BASE as string | undefined) ?? "https://serpapi.com/search.json";
-
-    if (!apiKey) {
-      return null;
-    }
-
-    const params = new URLSearchParams({
-      engine: "google_flights",
-      departure_id: input.originIata,
-      arrival_id: input.destinationIata,
-      outbound_date: input.departureDate,
-      type: "2",
-      adults: "1",
-      currency: "GBP",
-      hl: "en",
-      gl: "uk",
-      api_key: apiKey
+    // Routed through a Supabase edge function rather than called directly from
+    // the browser: SerpApi does not send CORS headers, so a direct fetch()
+    // from frontend code is always blocked.
+    const { supabase } = await import("../../lib/supabase");
+    const { data, error } = await supabase.functions.invoke("amadeus-flight-quote", {
+      body: {
+        originIata: input.originIata,
+        destinationIata: input.destinationIata,
+        departureDate: input.departureDate
+      }
     });
 
-    const response = await fetch(`${apiBase}?${params.toString()}`);
-    if (!response.ok) {
+    if (error || !data || data.error) {
       return null;
     }
 
-    const data = (await response.json()) as SerpApiResponse;
-    const offer = data.best_flights?.[0] ?? data.other_flights?.[0];
-
-    if (!offer) {
-      return null;
-    }
-
-    const firstFlight = offer.flights?.[0];
-    const lastFlight = offer.flights?.[(offer.flights?.length ?? 1) - 1];
-    const carrier = firstFlight?.airline ?? "carrier";
-    const flightNumber = firstFlight?.flight_number ?? "";
-    const flightLabel = [carrier, flightNumber].filter(Boolean).join(" ");
+    const quote = data as { estimatedCostGbp: number; durationHours: number; details: string };
 
     return {
-      estimatedCostGbp: toGbpAmount(offer.price),
-      durationHours: toDurationHours(offer.total_duration),
-      details: `Flight ${flightLabel} ${firstFlight?.departure_airport?.id ?? input.originIata} -> ${lastFlight?.arrival_airport?.id ?? input.destinationIata}`,
+      estimatedCostGbp: toGbpAmount(quote.estimatedCostGbp),
+      durationHours: toDurationHours(quote.durationHours),
+      details: quote.details,
       source: "live"
     };
   } catch (error) {

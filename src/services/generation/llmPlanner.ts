@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { ACCOMMODATIONS, DESTINATIONS, RESTAURANTS } from "../../data/mockCatalog";
 import type { AggregatedConstraints, GeneratedOption } from "../../types/models";
 
 const optionSchema = z.object({
@@ -76,47 +75,19 @@ const plannerSchema = z.object({
 });
 
 function buildPlannerPrompt(constraints: AggregatedConstraints) {
-  const destinationContext = DESTINATIONS.map((item) => ({
-    destination: item.destination,
-    country: item.country,
-    tags: item.tags,
-    avgDailyCost: item.avgDailyCost,
-    trainFriendly: item.trainFriendly,
-    ecoScore: item.ecoScore,
-    accessibilityScore: item.accessibilityScore
-  }));
-
-  const accommodationContext = ACCOMMODATIONS.map((item) => ({
-    destination: item.destination,
-    name: item.name,
-    nightlyCost: item.nightlyCost,
-    accessibilityFeatures: item.accessibilityFeatures,
-    ecoRating: item.ecoRating
-  }));
-
-  const restaurantContext = RESTAURANTS.map((item) => ({
-    destination: item.destination,
-    name: item.name,
-    cuisine: item.cuisine,
-    priceBand: item.priceBand,
-    dietaryTags: item.dietaryTags,
-    baseCost: item.baseCost
-  }));
-
   return [
     "You are a travel planning AI for a group-trip hackathon app.",
     "Return exactly 3 options using themes in this order: cheapest, best_match, most_sustainable.",
-    "Each option must use a different destination city. No duplicate destinations across the 3 options.",
-    "Respect group constraints. Keep options realistic and internally consistent.",
-    "Use only destinations and inventory from the provided context.",
+    "Each option must use a different real-world destination city, chosen from your own knowledge of real cities worldwide. No duplicate destinations across the 3 options.",
+    "IMPORTANT: Do not default to the same handful of well-known European city-break destinations (e.g. Amsterdam, Copenhagen, Lisbon, Split, Barcelona) unless they are genuinely the best fit. Actively consider a wide range of countries and city sizes, and vary your choices meaningfully between the 3 options and between different groups' constraints.",
+    "Base each destination choice explicitly on: budget fit (hardConstraints.maxBudgetPerPerson), the group's top preference tags (softPreferences.preferenceScores), transport bias and sustainability signals (softPreferences.transportBias, softPreferences.sustainabilityScore), strict dietary/accessibility needs, and realistic visa feasibility for the participants' nationalities.",
+    "Respect group constraints. Keep options realistic and internally consistent. Use your own general knowledge of real-world accommodation, dining, and transport costs and options for whichever destination you choose — do not invent implausible details.",
+    "All 3 options must share the same startDate and endDate, taken from hardConstraints.overlappingDates when it is present. If overlappingDates is null, propose sensible shared dates using each participant's preferredTripLengthDays, flexibilityNotes, and availabilityWindows in perParticipant.",
     "Each option must include transport, accommodation, restaurants, visa summaries, itinerary, and budget breakdown.",
     "Accommodation must include: name, description, nightlyCost, facilities, numBeds, location, accessibilityFeatures, and ecoRating.",
     "Budget breakdown totals should approximately align with estimatedTotal and estimatedPerPerson.",
-    "Prefer train and eco-friendly choices if sustainability signals are strong.",
-    "\nCONSTRAINTS_JSON:\n" + JSON.stringify(constraints),
-    "\nDESTINATIONS_JSON:\n" + JSON.stringify(destinationContext),
-    "\nACCOMMODATIONS_JSON:\n" + JSON.stringify(accommodationContext),
-    "\nRESTAURANTS_JSON:\n" + JSON.stringify(restaurantContext)
+    "Prefer train and eco-friendly choices if sustainability signals are strong and the destination is realistically well-connected by rail from participants' departure points.",
+    "\nCONSTRAINTS_JSON:\n" + JSON.stringify(constraints)
   ].join("\n");
 }
 
@@ -158,7 +129,7 @@ export async function generateTripOptionsWithLLM(constraints: AggregatedConstrai
   const llm = new ChatOpenAI({
     apiKey,
     model,
-    temperature: 0.3,
+    temperature: 0.85,
     configuration: {
       // This app currently runs generation from the frontend for MVP speed.
       // Move to a server/edge function before production usage.

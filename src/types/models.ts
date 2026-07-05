@@ -89,6 +89,9 @@ export type AggregatedConstraints = {
     sustainability: SustainabilityPreferences;
     nationality: string;
     residenceCountry: string;
+    preferredTripLengthDays: number;
+    flexibilityNotes?: string;
+    availabilityWindows: AvailabilityWindow[];
   }>;
 };
 

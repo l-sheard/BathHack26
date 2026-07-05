@@ -7,6 +7,7 @@ create table if not exists trips (
   start_date date,
   end_date date,
   share_code text not null unique,
+  user_id uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -16,6 +17,7 @@ create table if not exists trip_participants (
   name text not null,
   email text,
   role text not null default 'participant',
+  user_id uuid references auth.users(id) on delete set null,
   joined_at timestamptz not null default now()
 );
 create index if not exists idx_trip_participants_trip_id on trip_participants(trip_id);

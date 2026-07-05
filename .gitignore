@@ -9,6 +9,7 @@ coverage/
 .DS_Store
 *.log
 *.tsbuildinfo
+supabase/.temp/
 vite.config.js
 vite.config.d.ts
 tailwind.config.js

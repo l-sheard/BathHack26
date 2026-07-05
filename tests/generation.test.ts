@@ -66,7 +66,9 @@ const constraints: AggregatedConstraints = {
         sustainable_activities: true
       },
       nationality: "British",
-      residenceCountry: "United Kingdom"
+      residenceCountry: "United Kingdom",
+      preferredTripLengthDays: 4,
+      availabilityWindows: [{ start_date: "2026-06-12", end_date: "2026-06-17" }]
     },
     {
       participantId: "p2",
@@ -100,7 +102,9 @@ const constraints: AggregatedConstraints = {
         sustainable_activities: true
       },
       nationality: "Irish",
-      residenceCountry: "Ireland"
+      residenceCountry: "Ireland",
+      preferredTripLengthDays: 4,
+      availabilityWindows: [{ start_date: "2026-06-11", end_date: "2026-06-16" }]
     }
   ]
 };

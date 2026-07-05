@@ -5,32 +5,37 @@ import { fetchFlightQuote, fetchMockFlightQuoteWithLLM, type FlightQuote } from 
 import { fetchAccommodationEstimateWithLLM } from "./accommodationService";
 import type { AggregatedConstraints, GeneratedOption, TripPreferenceTag } from "../../types/models";
 import { generateTripOptionsWithLLM, isAiPlannerEnabled } from "./llmPlanner";
+import { selectTripDatesWithLLM } from "./dateService";
+
+type ParticipantPreferenceRow = {
+  id: string;
+  preferred_trip_length: number;
+  flexibility_notes: string | null;
+  departure_location: string;
+  alternative_locations: string[] | null;
+  max_travel_time_hours: number;
+  transport_preference: "plane" | "train" | "either";
+  total_budget: number;
+  trip_preferences: TripPreferenceTag[];
+  accessibility: Record<string, boolean | string>;
+  dietary: Record<string, boolean | string>;
+  sustainability: Record<string, boolean>;
+  passport_nationality: string;
+  residence_country: string;
+  visa_notes: string | null;
+  availability_windows: Array<{
+    start_date: string;
+    end_date: string;
+  }>;
+};
 
 type ParticipantRow = {
   id: string;
   name: string;
   email: string | null;
-  participant_preferences: Array<{
-    id: string;
-    preferred_trip_length: number;
-    flexibility_notes: string | null;
-    departure_location: string;
-    alternative_locations: string[] | null;
-    max_travel_time_hours: number;
-    transport_preference: "plane" | "train" | "either";
-    total_budget: number;
-    trip_preferences: TripPreferenceTag[];
-    accessibility: Record<string, boolean | string>;
-    dietary: Record<string, boolean | string>;
-    sustainability: Record<string, boolean>;
-    passport_nationality: string;
-    residence_country: string;
-    visa_notes: string | null;
-    availability_windows: Array<{
-      start_date: string;
-      end_date: string;
-    }>;
-  }>;
+  // participant_preferences.participant_id is unique, so PostgREST embeds
+  // this as a single to-one object (or null), never an array.
+  participant_preferences: ParticipantPreferenceRow | null;
 };
 
 type DestinationCandidate = {
@@ -109,19 +114,21 @@ export async function aggregateConstraints(tripId: string): Promise<AggregatedCo
     throw new Error(`Failed to aggregate constraints: ${error.message}`);
   }
 
-  const rows = (data ?? []) as ParticipantRow[];
-  const validRows = rows.filter((row) => row.participant_preferences.length > 0);
+  // supabase-js infers embeds as arrays by default since it has no generated
+  // schema types to know participant_id is unique; the actual runtime shape
+  // (verified against the live API) is a to-one object, matching ParticipantRow.
+  const rows = (data ?? []) as unknown as ParticipantRow[];
 
   if (rows.length === 0) {
     throw new Error("No participants found in this trip. Add participants before generating trip options.");
   }
 
-  const sourceRows = validRows.length > 0 ? rows : rows;
+  const sourceRows = rows;
   const defaultWindowStart = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString().slice(0, 10);
   const defaultWindowEnd = new Date(Date.now() + 1000 * 60 * 60 * 24 * 18).toISOString().slice(0, 10);
 
   const getPreference = (row: ParticipantRow) => {
-    const pref = row.participant_preferences[0];
+    const pref = row.participant_preferences;
     if (pref) {
       return pref;
     }
@@ -188,7 +195,10 @@ export async function aggregateConstraints(tripId: string): Promise<AggregatedCo
       dietary: pref.dietary as AggregatedConstraints["perParticipant"][number]["dietary"],
       sustainability: pref.sustainability as AggregatedConstraints["perParticipant"][number]["sustainability"],
       nationality: pref.passport_nationality,
-      residenceCountry: pref.residence_country
+      residenceCountry: pref.residence_country,
+      preferredTripLengthDays: pref.preferred_trip_length,
+      flexibilityNotes: pref.flexibility_notes ?? undefined,
+      availabilityWindows: pref.availability_windows ?? []
     };
   });
 
@@ -295,10 +305,20 @@ function extractIataCode(departureLocation: string) {
 }
 
 function resolveDestinationCandidate(destinationName: string): DestinationCandidate {
-  const fallback = DESTINATIONS[0];
-  const match = DESTINATIONS.find((item) => item.destination === destinationName) ?? fallback;
+  const match = DESTINATIONS.find((item) => item.destination === destinationName);
+  if (match) {
+    return { ...match, matchScore: 0 };
+  }
+
+  // AI-proposed destinations aren't limited to the mock catalog; use neutral
+  // defaults instead of silently borrowing another city's real data.
   return {
-    ...match,
+    destination: destinationName,
+    country: "",
+    avgDailyCost: 120,
+    trainFriendly: false,
+    ecoScore: 60,
+    accessibilityScore: 60,
     matchScore: 0
   };
 }
@@ -307,12 +327,15 @@ async function generateTransportPlanWithFlightQuotes(
   destination: DestinationCandidate,
   constraints: AggregatedConstraints,
   departureDate: string,
-  useLiveFlights: boolean
+  useLiveFlights: boolean,
+  fallbackPlans: GeneratedOption["transportPlans"]
 ) {
   const destinationIata = DESTINATION_AIRPORT_IATA[destination.destination];
+  const fallbackByParticipant = new Map(fallbackPlans.map((plan) => [plan.participantId, plan]));
 
   return Promise.all(
     constraints.perParticipant.map(async (participant) => {
+      const existingPlan = fallbackByParticipant.get(participant.participantId);
       const chooseTrain =
         participant.transportPreference === "train" ||
         (participant.transportPreference === "either" &&
@@ -361,6 +384,13 @@ async function generateTransportPlanWithFlightQuotes(
         }
       }
 
+      // No live/mock quote available (often because the AI picked a destination
+      // outside the mock airport map) — trust the AI's own transport reasoning
+      // instead of recomputing generic catalog-based numbers for an unknown city.
+      if (existingPlan) {
+        return existingPlan;
+      }
+
       return {
         participantId: participant.participantId,
         mode,
@@ -385,7 +415,8 @@ async function enrichOptionsWithLiveTransport(options: GeneratedOption[], constr
         destination,
         constraints,
         option.startDate,
-        USE_SERPAPI_LIVE_FLIGHTS
+        USE_SERPAPI_LIVE_FLIGHTS,
+        option.transportPlans
       );
       const transportTotal = transportPlans.reduce((sum, plan) => sum + plan.estimatedCost, 0);
       const staticCosts =
@@ -769,7 +800,7 @@ export async function generateTripOptions(
     "in-progress",
     "Reading participant budgets, transport preferences, dietary needs, and accessibility constraints."
   );
-  const constraints = await aggregateConstraints(tripId);
+  let constraints = await aggregateConstraints(tripId);
   updateProgress(
     "gather-preferences",
     "complete",
@@ -781,13 +812,33 @@ export async function generateTripOptions(
     "in-progress",
     "Intersecting availability windows and validating feasible trip length."
   );
-  await new Promise((resolve) => setTimeout(resolve, 800));
+
+  let dateRationale: string | undefined;
+  if (isAiPlannerEnabled()) {
+    console.info("[generation] Asking AI to select best group dates");
+    const aiDates = await selectTripDatesWithLLM(constraints, constraints.hardConstraints.overlappingDates);
+    if (aiDates) {
+      constraints = {
+        ...constraints,
+        hardConstraints: {
+          ...constraints.hardConstraints,
+          overlappingDates: { start_date: aiDates.startDate, end_date: aiDates.endDate }
+        }
+      };
+      dateRationale = aiDates.rationale;
+    }
+  } else {
+    await new Promise((resolve) => setTimeout(resolve, 800));
+  }
+
   updateProgress(
     "find-dates",
     "complete",
-    constraints.hardConstraints.overlappingDates
-      ? `Overlap found: ${constraints.hardConstraints.overlappingDates.start_date} to ${constraints.hardConstraints.overlappingDates.end_date}.`
-      : "No strict overlap found, using best fallback window for planning."
+    dateRationale
+      ? `AI-selected dates: ${constraints.hardConstraints.overlappingDates?.start_date} to ${constraints.hardConstraints.overlappingDates?.end_date}. ${dateRationale}`
+      : constraints.hardConstraints.overlappingDates
+        ? `Overlap found: ${constraints.hardConstraints.overlappingDates.start_date} to ${constraints.hardConstraints.overlappingDates.end_date}.`
+        : "No strict overlap found, using best fallback window for planning."
   );
 
   updateProgress(
