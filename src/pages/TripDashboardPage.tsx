@@ -75,15 +75,33 @@ export function TripDashboardPage() {
                 Share link
               </Button>
               {options.data && options.data.length > 0 ? (
-                <Button
-                  onClick={() =>
-                    navigate(
-                      `/trip/${tripId}/options${participantId ? `?participantId=${participantId}` : ""}`,
-                    )
-                  }
-                >
-                  View trip options
-                </Button>
+                <>
+                  <Button
+                    onClick={() =>
+                      navigate(
+                        `/trip/${tripId}/options${participantId ? `?participantId=${participantId}` : ""}`,
+                      )
+                    }
+                  >
+                    View trip options
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          "Regenerate trip options? This replaces the current 3 options and any votes already cast on them.",
+                        )
+                      ) {
+                        navigate(
+                          `/trip/${tripId}/generation${participantId ? `?participantId=${participantId}` : ""}`,
+                        );
+                      }
+                    }}
+                  >
+                    Regenerate options
+                  </Button>
+                </>
               ) : (
                 (() => {
                   // Check if at least one participant has filled preferences

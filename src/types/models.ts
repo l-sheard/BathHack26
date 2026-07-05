@@ -99,6 +99,7 @@ export type GeneratedOption = {
   optionRank: number;
   theme: "cheapest" | "best_match" | "most_sustainable";
   destination: string;
+  destinationIata?: string;
   startDate: string;
   endDate: string;
   summary: string;

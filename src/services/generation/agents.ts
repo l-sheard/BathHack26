@@ -328,9 +328,10 @@ async function generateTransportPlanWithFlightQuotes(
   constraints: AggregatedConstraints,
   departureDate: string,
   useLiveFlights: boolean,
-  fallbackPlans: GeneratedOption["transportPlans"]
+  fallbackPlans: GeneratedOption["transportPlans"],
+  destinationIataOverride?: string
 ) {
-  const destinationIata = DESTINATION_AIRPORT_IATA[destination.destination];
+  const destinationIata = destinationIataOverride || DESTINATION_AIRPORT_IATA[destination.destination];
   const fallbackByParticipant = new Map(fallbackPlans.map((plan) => [plan.participantId, plan]));
 
   return Promise.all(
@@ -416,7 +417,8 @@ async function enrichOptionsWithLiveTransport(options: GeneratedOption[], constr
         constraints,
         option.startDate,
         USE_SERPAPI_LIVE_FLIGHTS,
-        option.transportPlans
+        option.transportPlans,
+        option.destinationIata
       );
       const transportTotal = transportPlans.reduce((sum, plan) => sum + plan.estimatedCost, 0);
       const staticCosts =

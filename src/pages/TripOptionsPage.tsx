@@ -273,6 +273,23 @@ export function TripOptionsPage() {
             >
               Back
             </Button>
+
+            {options.data && options.data.length > 0 ? (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Regenerate trip options? This replaces the current 3 options and any votes already cast on them.",
+                    )
+                  ) {
+                    navigate(`/trip/${tripId}/generation${participantQuery}`);
+                  }
+                }}
+              >
+                Regenerate options
+              </Button>
+            ) : null}
           </div>
         </Card>
       </Section>
