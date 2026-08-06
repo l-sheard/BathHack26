@@ -1,7 +1,10 @@
-# Group Trip Planner MVP
+# Group Trip Planner
 
-- Full-stack MVP built with React + TypeScript + Tailwind + Supabase.
+- Group Trip Planner is a full-stack web application built during Bath Hack 2026 that helps groups collaboratively plan trips. Participants submit their preferences, and the application generates multiple itinerary options balancing cost, preferences and sustainability.
 - Honourable mention for "Best Overall" award at Bath Hack 2026.
+
+**Stack:** React + TypeScript + Tailwind + Supabase.
+
 <img width="959" height="564" alt="landing page" src="https://github.com/user-attachments/assets/6e72d6f1-a419-4b0c-90c1-a67c7e9939e9" />
 
 
@@ -109,16 +112,6 @@ Inside src/services/generation/agents.ts:
 - Set VITE_USE_LIVE_FLIGHTS=true to enable live SerpApi flight quotes during generation.
 - Data model and generation services are structured for easy API replacement later.
 - If AI env vars are not set (or AI call fails), the app falls back to deterministic generation logic.
-
-## Future integration TODOs
-
-- Move LangChain planner invocation from frontend into a server/edge function so API keys are never exposed to clients
-- Move SerpApi flight lookup behind a server/edge function so API keys are never exposed to clients
-- Replace mock transport planning with live flight/train providers
-- Replace mock accommodation with hotel APIs
-- Replace rule-based visa checks with visa API/provider
-- Add authenticated organizer/participant roles
-- Add real-time subscriptions for live vote and booking updates
 
 ## Test commands
 
