@@ -1,6 +1,6 @@
-# Group Trip Planner
+# For the Plot - AI Group Trip Planner
 
-- Group Trip Planner is a full-stack web application built during Bath Hack 2026 that helps groups collaboratively plan trips. Participants submit their preferences, and the application generates multiple itinerary options balancing cost, preferences and sustainability.
+- For the Plot - AI group trip planner is a full-stack web application built during Bath Hack 2026 that helps groups collaboratively plan trips. Participants submit their preferences, and the application generates multiple itinerary options balancing cost, preferences and sustainability.
 - Honourable mention for "Best Overall" award at Bath Hack 2026.
 
 **Stack:** React + TypeScript + Tailwind + Supabase.
