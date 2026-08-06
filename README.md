@@ -1,6 +1,9 @@
 # Group Trip Planner MVP
 
-Hackathon-ready full-stack MVP built with React + TypeScript + Tailwind + Supabase.
+- Full-stack MVP built with React + TypeScript + Tailwind + Supabase.
+- Honourable mention for "Best Overall" award at Bath Hack 2026.
+<img width="959" height="564" alt="landing page" src="https://github.com/user-attachments/assets/6e72d6f1-a419-4b0c-90c1-a67c7e9939e9" />
+
 
 ## Features implemented
 
